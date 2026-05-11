@@ -1,0 +1,414 @@
+/**
+ * Shared design system — linguistic annotation platform (BTP).
+ * Light, simple, educational. Use on every page.
+ */
+
+:root {
+  --color-primary: #0d9488;
+  --color-primary-hover: #0f766e;
+  --color-primary-light: #ccfbf1;
+
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* ----- Header (use on all pages) ----- */
+.app-header {
+  background: var(--color-primary);
+  color: #fff;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow);
+  gap: 16px;
+}
+
+/* Left: IITBBS logo placeholder (add your logo image later) */
+.app-header-left {
+  display: flex;
+  align-items: center;
+  min-width: 60px;
+}
+
+.header-logo {
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-logo img {
+  width: 55px;
+  height: 55px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+/* Center: Title (and optional mode pill on annotation pages) */
+.app-header-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.app-header-title {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-decoration: none;
+  margin: 0;
+}
+
+.app-header-title:hover {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.app-header-center .mode-pill {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+/* Right: User name + profile dropdown */
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+  justify-content: flex-end;
+}
+
+.header-user-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.header-profile-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-profile-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.header-profile-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.header-profile-btn[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Login/signup: same icon look, not a button */
+.header-profile-icon-only {
+  cursor: default;
+  pointer-events: none;
+}
+
+.header-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.header-dropdown.is-open {
+  display: block;
+}
+
+.header-dropdown a,
+.header-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+/* Override .app-header a so dropdown text is visible (dark on light) */
+.app-header .header-dropdown a,
+.app-header .header-dropdown button {
+  color: var(--color-text);
+}
+
+.header-dropdown a:hover,
+.header-dropdown button:hover {
+  background: var(--color-bg);
+}
+
+.header-dropdown .dropdown-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 4px 0;
+}
+
+/* Legacy / compatibility */
+.app-header .brand { font-weight: 700; font-size: 1.1rem; }
+.app-header .user-wrap { display: flex; align-items: center; gap: 12px; }
+.app-header .btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+.app-header .btn:hover { background: rgba(255, 255, 255, 0.15); }
+.app-header > .app-header-left a,
+.app-header > .app-header-center a,
+.app-header .app-header-back { color: #fff; text-decoration: none; font-weight: 700; }
+.app-header > .app-header-left a:hover,
+.app-header > .app-header-center a:hover,
+.app-header .app-header-back:hover { text-decoration: underline; }
+.app-header-back { font-size: 0.9rem; font-weight: 600; opacity: 0.95; }
+.app-header .user-name { font-weight: 600; margin-right: 4px; }
+.app-header-left .app-header-back { color: #fff; }
+
+/* ----- Cards ----- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.25rem;
+}
+
+/* ----- Buttons ----- */
+.btn {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.btn:hover {
+  background: #f3f4f6;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: #fff;
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+  border-color: var(--color-danger);
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+}
+
+.btn-outline {
+  background: transparent;
+}
+
+/* ----- Modals ----- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-overlay .modal {
+  background: var(--color-surface);
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-overlay .modal h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.modal-overlay .modal input,
+.modal-overlay .modal textarea,
+.modal-overlay .modal select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+/* ----- Forms ----- */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+/* ----- Inspector (annotation sidebar) ----- */
+.inspector {
+  margin-top: 1rem;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.inspector h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.inspector-details {
+  font-size: 14px;
+  color: var(--color-text);
+  margin-bottom: 10px;
+}
+
+.inspector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inspector-actions .btn {
+  margin-top: 0;
+}
+
+/* ----- Mode pill (annotate / curate) ----- */
+.mode-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mode-pill.annotate {
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+}
+
+.mode-pill.curate {
+  background: #fef3c7;
+  color: var(--color-warning);
+}
+
+/* ----- Focus (accessibility) ----- */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

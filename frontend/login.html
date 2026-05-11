@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — IndiAnn</title>
+  <link rel="stylesheet" href="css/common.css">
+  <script src="js/config.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .app-header {
+      width: 100%;
+      align-self: stretch;
+    }
+
+    .login-box {
+      margin-top: 100px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: 40px 36px;
+      border-radius: var(--radius);
+      width: 320px;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .login-box .avatar {
+      width: 64px;
+      height: 64px;
+      border: 2px solid var(--color-primary);
+      border-radius: 50%;
+      margin: 0 auto 54px;
+      background: var(--color-primary-light);
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 10px 12px;
+      margin: 8px 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .login-box .create-account {
+      margin-top: 16px;
+      display: block;
+      font-size: 14px;
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .login-box .create-account:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" aria-label="Application header">
+    <div class="app-header-left">
+      <div class="header-logo" aria-hidden="true"><img src="logo.png" alt="IITBBS" /></div>
+    </div>
+    <div class="app-header-center">
+      <a href="login.html" class="app-header-title">IndiAnn</a>
+    </div>
+    <div class="app-header-right">
+      <div class="header-profile-wrap">
+        <span class="header-user-name">Sign in</span>
+        <span class="header-profile-btn header-profile-icon-only" aria-hidden="true">&#128100;</span>
+      </div>
+    </div>
+  </header> 
+
+  <!-- Login Box -->
+  <div class="login-box">
+    <div class="avatar"></div>
+    <input type="text" placeholder="USER NAME" id="username">
+    <input type="password" placeholder="PASSWORD" id="password">
+    <button onclick="handleLogin()">LOGIN</button>
+    <a href="signup.html" class="create-account">CREATE AN ACCOUNT</a>
+
+  </div>
+
+   <script>
+    function handleLogin() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        alert("Please enter both username and password!");
+        return;
+      }
+
+      fetch(window.APP_CONFIG.API_BASE_URL + "/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "success") {
+          // Save user info for later use
+          localStorage.setItem("user", JSON.stringify({
+            user_id: data.user_id,
+            username: username,
+            is_admin: data.is_admin
+          }));
+
+          
+          window.location.href = "dashboard.html";  // redirect to dashboard
+        } else {
+          alert("Login failed: " + data.detail);
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        alert("Server error");
+      });
+
+    }
+
+
+    // If already logged in, redirect to dashboard
+    (function () {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || 'null');
+        if (u && u.user_id) {
+          window.location.href = 'dashboard.html';
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+</body>
+</html>

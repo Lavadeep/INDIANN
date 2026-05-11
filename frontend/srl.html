@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SRL — IndiAnn</title>
+  <link rel="stylesheet" href="css/common.css">
+  <script src="js/config.js"></script>
+  <script src="js/header.js"></script>
+  <style>
+    .container {
+      display: flex;
+      padding: 20px;
+      gap: 30px;
+    }
+
+    .text-box {
+      flex: 2;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-surface);
+      padding: 12px;
+      margin-right: 20px;
+      height: 500px;
+      overflow-y: auto;
+    }
+
+
+    .sentence {
+      border-bottom: 1px solid #ddd;
+      padding: 5px;
+      margin-bottom: 8px;   /* ✅ ADD THIS */
+      line-height: 1.6;     /* ✅ improves readability */
+    }
+
+    .sentence:nth-child(odd) {
+      background: #f5f5f5;
+    }
+
+    .sidebar {
+      flex: 1;
+      border: 1px solid var(--color-border);
+      padding: 15px;
+      background: var(--color-surface);
+      border-radius: var(--radius);
+    }
+
+    .block {
+      margin-bottom: 20px;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 6px;
+      margin-top: 6px;
+    }
+
+    /* ===== Highlights ===== */
+
+    .predicate {
+      background: #ffe599;
+      border: 2px solid #d6b656;
+      border-radius: 4px;
+      padding: 2px;
+      cursor: pointer;
+    }
+
+    .role {
+      background: #d9edf7;
+      border: 2px solid #31708f;
+      border-radius: 4px;
+      padding: 2px;
+      cursor: pointer;
+    }
+
+    /* .approved {
+      outline: 2px solid green;
+    }
+
+    .rejected {
+      text-decoration: line-through;
+      opacity: 0.6;
+    } */
+
+    /* Inspector — same design as pos/spanrel in curator mode */
+    #annotationInspector {
+      display: none;
+      margin-top: 15px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+
+    #annotationInspector h4 { margin-top: 0; }
+    #annotationInspector #annoDetails { font-size: 14px; }
+    #annotationInspector button { margin-top: 8px; padding: 6px 10px; border-radius: 4px; cursor: pointer; border: none; color: white; }
+    #annotationInspector button.srl-approve { background: #2ecc71; }
+    #annotationInspector button.srl-reject { background: #e67e22; }
+    #annotationInspector button.srl-delete,
+    #annotationInspector #deleteBtn { background: #e74c3c !important; opacity: 1 !important; }
+    #annotationInspector button:disabled { opacity: 1; }
+
+    button {
+      margin-top: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    .active-predicate {
+      outline: 3px solid #ff9800;
+    }
+
+    .predicate.pending,
+    .role.pending {
+      outline: 2px dashed #dbd679;
+    }
+    .predicate.approved{
+       outline: 2px solid green;
+    }
+    .predicate.rejected{
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+
+    /* ===== ROLE STATES (CURATE MODE) ===== */
+
+    .role.pending {
+      outline: 2px dashed #999;
+    }
+
+    .role.approved {
+      background: #e6f3ff;
+      border: 2px solid #2196f3;
+      text-decoration: none;
+      opacity: 1;
+    }
+
+    .role.rejected {
+      text-decoration: line-through;
+      opacity: 0.5;
+      background: #f5f5f5;
+      border: 2px solid #ccc;
+    }
+
+    
+  </style>
+</head>
+
+<body>
+
+  <header class="app-header" aria-label="Application header">
+    <div class="app-header-left">
+      <div class="header-logo" aria-hidden="true"><img src="logo.png" alt="IITBBS" /></div>
+    </div>
+    <div class="app-header-center">
+      <a href="dashboard.html" class="app-header-title">IndiAnn</a>
+      <span id="modePill" class="mode-pill annotate"></span>
+    </div>
+    <div class="app-header-right">
+      <div class="header-profile-wrap">
+        <span id="headerUsername" class="header-user-name">User</span>
+        <button type="button" class="header-profile-btn" id="headerProfileBtn" aria-haspopup="true" aria-expanded="false" aria-label="Profile menu">&#128100;</button>
+        <div class="header-dropdown" id="headerDropdown" role="menu">
+          <a href="dashboard.html" role="menuitem">Dashboard</a>
+          <a href="#" id="headerBackToProject" role="menuitem">← Back to Project</a>
+          <div class="dropdown-divider"></div>
+          <button type="button" role="menuitem" id="headerLogoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div id="modeBanner" style="display:none; padding:8px 16px; font-weight:600;"></div>
+
+<div class="container">
+
+  <!-- TEXT -->
+  <div class="text-box" id="textBox"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div id="srlLabelWrap" style="position:relative; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+      <h3 style="margin:0;">SRL LABEL</h3>
+      <select id="srlLabel">
+        <option value="">-- Select Label --</option>
+        <option value="PRED">PREDICATE</option>
+      </select>
+      <button type="button" id="labelInfoBtn" title="Label info" style="opacity:0.6; padding:2px 6px; min-width:auto; font-size:11px; border-radius:4px;">ℹ️</button>
+      <div id="labelInfoPopup" style="display:none; position:absolute; left:0; top:100%; z-index:100; margin-top:4px; padding:10px; max-width:280px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--color-border); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong>Labels &amp; descriptions</strong>
+          <button type="button" id="labelInfoPopupClose" style="background:none; border:none; cursor:pointer; font-size:16px;">×</button>
+        </div>
+        <ul id="labelInfoList" style="list-style:none; padding:0; margin:0;"></ul>
+      </div>
+    </div>
+
+    <input id="customSRL" placeholder="Custom label" style="display:none;">
+
+    <!-- Annotator: Mark as done / completion message (annotate mode only) -->
+    <div id="annotationCompleteBox" style="display:none; margin-top:12px; padding:10px; border:1px solid var(--color-border); border-radius:6px; background:var(--color-bg);">
+      <div id="annotationCompleteMessage" style="font-size:13px; margin-bottom:8px;"></div>
+      <button type="button" id="markAsDoneBtn" class="btn btn-primary" style="display:none;">Mark as done (lock annotations)</button>
+    </div>
+
+
+    <!-- Annotation Inspector (same design as pos.html / spanrel.html in curator mode) -->
+    <div id="annotationInspector">
+      <h4 style="margin-top:0">Selected Annotation</h4>
+      <div id="annoDetails" style="font-size:14px;"></div>
+      <button id="approveBtn" style="margin-top:8px;background:#2ecc71;color:white;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;">Approve</button>
+      <button id="rejectBtn" style="margin-top:8px;background:#e67e22;color:white;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;">Reject</button>
+      <button id="deleteBtn" style="margin-top:8px;background:#e74c3c;color:white;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;">Delete</button>
+    </div>
+
+    <button id="downloadBtn" class="btn btn-outline-primary" style="margin-top:12px;">⬇️ Download Annotations</button>
+
+  </div>
+</div>
+
+<script>
+/* ===================== GLOBAL ===================== */
+
+const API = window.APP_CONFIG.API_BASE_URL;
+const user = JSON.parse(localStorage.getItem("user"));
+if (!user) location.href = "login.html";
+var headerUserEl = document.getElementById("headerUsername");
+if (headerUserEl) headerUserEl.textContent = user.username;
+
+const AUTH = { "X-User-Id": String(user.user_id) };
+
+const params = new URLSearchParams(window.location.search);
+const documentId = params.get("document_id");
+const projectId = params.get("project_id");
+const MODE = params.get("mode") || "annotate";
+
+const modePill = document.getElementById("modePill");
+var backLink = document.getElementById("headerBackToProject");
+if (backLink && projectId) backLink.href = "project.html?project_id=" + projectId + "&mode=" + MODE;
+document.getElementById("headerLogoutBtn")?.addEventListener("click", function () {
+  localStorage.removeItem("user");
+  window.location.href = "login.html";
+});
+if (modePill) {
+  modePill.textContent = MODE === "curate" ? "Curate" : "Annotate";
+  modePill.className = "mode-pill " + (MODE === "curate" ? "curate" : "annotate");
+}
+
+const banner = document.getElementById("modeBanner");
+if (MODE === "curate") {
+  if (banner) { banner.textContent = "SRL CURATION MODE"; banner.style.background = "#fef3c7"; }
+  document.querySelector(".sidebar h3")?.style.setProperty("display", "none");
+  document.getElementById("srlLabel")?.style.setProperty("display", "none");
+  document.getElementById("customSRL")?.style.setProperty("display", "none");
+} else {
+  if (banner) banner.style.display = "none";
+}
+
+/* ===================== STATE ===================== */
+
+let originalText = "";
+let predicates = [];
+let roles = [];
+
+let selectedPredicate = null;
+let canEditAnnotations = true;  // false after annotator clicks "Mark as done"
+const ANNO_LOCK_KEY = `anno_locked_srl_${documentId}_${user?.user_id || "u"}`;
+
+function setEditingLocked(locked) {
+  canEditAnnotations = !locked;
+  const msgEl = document.getElementById("annotationCompleteMessage");
+  const doneBtn = document.getElementById("markAsDoneBtn");
+  const box = document.getElementById("annotationCompleteBox");
+  if (MODE === "curate") {
+    box?.style.setProperty("display", "none");
+    return;
+  }
+  if (box) box.style.display = "block";
+  if (locked) {
+    if (msgEl) {
+      msgEl.textContent = "You have marked this document as complete. You can no longer change annotations.";
+      msgEl.style.color = "var(--color-text-muted)";
+    }
+    if (doneBtn) {
+      doneBtn.style.opacity = "0";
+      doneBtn.style.pointerEvents = "none";
+      setTimeout(() => { if (doneBtn) doneBtn.style.display = "none"; }, 180);
+    }
+  } else {
+    if (msgEl) {
+      msgEl.textContent = "When you finish annotating, mark as done to lock your annotations.";
+      msgEl.style.color = "var(--color-text-muted)";
+    }
+    if (doneBtn) {
+      doneBtn.style.display = "block";
+      doneBtn.style.opacity = "1";
+      doneBtn.style.pointerEvents = "auto";
+    }
+  }
+
+  // Disable/enable label selection inputs
+  const srlSel = document.getElementById("srlLabel");
+  const custom = document.getElementById("customSRL");
+  if (srlSel) locked ? srlSel.setAttribute("disabled", "true") : srlSel.removeAttribute("disabled");
+  if (custom) locked ? custom.setAttribute("disabled", "true") : custom.removeAttribute("disabled");
+}
+let selectedPredicateGroup = null;
+//let selectedRole = null
+let srlRoleLabels = [];  // for label info popup
+
+//custom
+const srlLabel = document.getElementById("srlLabel");
+const customSRL = document.getElementById("customSRL");
+
+srlLabel.addEventListener("change", () => {
+  customSRL.style.display =
+    srlLabel.value === "custom" ? "block" : "none";
+});
+
+
+function updateSRLDropdown() {
+  [...srlLabel.options].forEach(opt => {
+    if (opt.value !== "PRED" && opt.value !== "" && !selectedPredicate) {
+      opt.disabled = true;
+    } else {
+      opt.disabled = false;
+    }
+  });
+}
+
+
+/* ===================== UTIL ===================== */
+
+function computeSentences(originalContent) {
+    if (!originalContent || typeof originalContent !== "string") return [];
+    const lines = originalContent.split("\n");
+    if (lines.length > 1) {
+      const sentences = [];
+      let pos = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const start = pos;
+        const end = pos + line.length;
+        sentences.push({ start, end, text: line });
+        pos = end + (i < lines.length - 1 ? 1 : 0);
+      }
+      return sentences;
+    }
+    const content = originalContent;
+    const sentences = [];
+    let pos = 0;
+    while (pos < content.length) {
+      while (pos < content.length && /\s/.test(content[pos])) pos++;
+      if (pos >= content.length) break;
+      const start = pos;
+      const rest = content.slice(pos);
+      const match = rest.match(/\S[\s\S]*?[.?!\u0964\u0965]+/);
+      if (match) {
+        let end = pos + match[0].length;
+        while (end < content.length && /\s/.test(content[end])) end++;
+        sentences.push({ start, end, text: content.slice(start, end).trim() });
+        pos = end;
+      } else {
+        const m2 = rest.match(/\S[\s\S]*/);
+        if (m2) {
+          const end = pos + m2[0].length;
+          sentences.push({ start, end, text: content.slice(start, end).trim() });
+          pos = end;
+        } else break;
+      }
+    }
+    return sentences;
+  }
+
+
+
+/* ===================== RENDER ===================== */
+function uniqueBySpan(items) {
+  const seen = new Set();
+  return items.filter(a => {
+    const key = `${a.start_offset}-${a.end_offset}-${a.predicate_id || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function dedupeBySpan(arr, extraKey = "") {
+  const seen = new Set();
+  return arr.filter(a => {
+    const key = `${a.start_offset}-${a.end_offset}-${a[extraKey] ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+
+function render() {
+  const box = document.getElementById("textBox");
+  box.innerHTML = "";
+
+  const sentences = computeSentences(originalText);
+  const roleMap = new Map();
+  roles.forEach(r => roleMap.set(r.id, r));
+
+  sentences.forEach(sentence => {
+    const { start: sentStart, end: sentEnd, text: sentText } = sentence;
+
+    const tags = [];
+    var spanSeen = new Set();
+    var addSpan = function(start, end, repr) {
+      var key = start + "-" + end;
+      if (spanSeen.has(key)) return;
+      spanSeen.add(key);
+      var posStart = Math.max(0, start - sentStart);
+      var posEnd = Math.min(sentText.length, end - sentStart);
+      tags.push({ pos: posStart, type: "start", repr: repr, start_offset: start, end_offset: end });
+      tags.push({ pos: posEnd, type: "end" });
+    };
+    var predInSent = predicates.filter(function(p) { return p.start_offset < sentEnd && p.end_offset > sentStart; });
+    var roleInSent = roles.filter(function(r) { return r.start_offset < sentEnd && r.end_offset > sentStart; });
+    predInSent.forEach(function(p) {
+      var group = predicates.filter(function(x) { return x.start_offset === p.start_offset && x.end_offset === p.end_offset; });
+      var statusClass = MODE === "curate"
+        ? (group.some(function(x) { return x.conflict; }) ? "conflict" : group.some(function(x) { return x.status === "approved"; }) ? "approved" : group.some(function(x) { return x.status === "rejected"; }) ? "rejected" : "pending")
+        : (group[0] && group[0].status) || "pending";
+      addSpan(p.start_offset, p.end_offset, { cls: "predicate", id: group[0].id, statusClass: statusClass, predicate_id: null });
+    });
+    roleInSent.forEach(function(r) {
+      var key = r.start_offset + "-" + r.end_offset;
+      if (spanSeen.has(key)) return;
+      var group = roles.filter(function(x) { return x.predicate_id === r.predicate_id && x.start_offset === r.start_offset && x.end_offset === r.end_offset; });
+      var statusClass = MODE === "curate"
+        ? (group.some(function(x) { return x.conflict; }) ? "conflict" : group.some(function(x) { return x.status === "approved"; }) ? "approved" : group.some(function(x) { return x.status === "rejected"; }) ? "rejected" : "pending")
+        : (group[0] && group[0].status) || "pending";
+      addSpan(r.start_offset, r.end_offset, { cls: "role", id: group[0].id, statusClass: statusClass, predicate_id: r.predicate_id });
+    });
+
+    tags.sort((a, b) => a.pos - b.pos || (a.type === "end" ? -1 : 1));
+    let html = "";
+    let last = 0;
+    tags.forEach(t => {
+      html += sentText.slice(last, t.pos);
+      if (t.type === "start") {
+        var r = t.repr || {};
+        var cls = r.cls || "predicate";
+        var statusClass = r.statusClass;
+        if (MODE !== "curate" && r.id != null) {
+          statusClass = cls === "predicate" ? (predicates.find(function(p) { return p.id === r.id; }) || {}).status || "pending" : (roleMap.get(r.id) || {}).status || "pending";
+        }
+        if (MODE === "curate") {
+          var dataAttrs = cls === "role"
+            ? "data-start-offset=\"" + t.start_offset + "\" data-end-offset=\"" + t.end_offset + "\" data-predicate-id=\"" + (r.predicate_id || "") + "\""
+            : "data-start-offset=\"" + t.start_offset + "\" data-end-offset=\"" + t.end_offset + "\"";
+          html += "<span class=\"" + cls + " " + (statusClass || "pending") + "\" " + dataAttrs + ">";
+        } else {
+          html += "<span class=\"" + cls + " " + (statusClass || "pending") + "\" data-id=\"" + (r.id || "") + "\">";
+        }
+      } else {
+        html += "</span>";
+      }
+      last = t.pos;
+    });
+    html += sentText.slice(last);
+
+    const div = document.createElement("div");
+    div.className = "sentence";
+    div.dataset.start = sentStart;   // IMPORTANT
+    div.dataset.end   = sentEnd;
+    div.innerHTML = html;
+
+    box.appendChild(div);
+  });
+}
+
+
+/* ===================== LOAD ===================== */
+
+async function load() {
+  const doc = await fetch(`${API}/documents/${documentId}`, { headers: AUTH })
+    .then(r => r.json());
+
+  // Keep backend sentence boundaries intact; only normalize line endings.
+  originalText = (doc.content || "").replace(/\r\n?/g, "\n");
+
+  // Apply persisted lock (so it stays locked after refresh).
+  // Also try to sync with backend when allowed (admin unlock should re-enable editing).
+  if (MODE !== "curate") {
+    const lockedLocal = localStorage.getItem(ANNO_LOCK_KEY) === "1";
+    setEditingLocked(lockedLocal);
+    try {
+      const statusRes = await fetch(
+        `${API}/documents/${documentId}/annotation-status`,
+        { headers: AUTH }
+      );
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        const lockedServer = statusData.can_edit === false || statusData.user_has_completed === true;
+        if (lockedServer) localStorage.setItem(ANNO_LOCK_KEY, "1");
+        else localStorage.removeItem(ANNO_LOCK_KEY);
+        setEditingLocked(lockedServer);
+      } else if (statusRes.status === 403) {
+        // backend forbids status on some layers; keep local lock only
+      }
+    } catch (e) {
+      // keep local lock only
+    }
+  } else {
+    document.getElementById("annotationCompleteBox")?.style.setProperty("display", "none");
+  }
+
+  if (MODE === "annotate") {
+    predicates = await fetch(`${API}/srl/document/${documentId}`, { headers: AUTH })
+      .then(r => r.json())
+      .then(d => d.predicates.filter(p => p.user_id === user.user_id));
+
+    roles = await fetch(`${API}/srl/document/${documentId}`, { headers: AUTH })
+      .then(r => r.json())
+      .then(d => d.roles.filter(r => r.user_id === user.user_id));
+
+  } else {
+    const data = await fetch(
+      `${API}/curation/srl/document/${documentId}`,
+      { headers: AUTH }
+    ).then(r => r.json());
+
+    // 🔹 FLATTEN GROUPS (POS STYLE) — per-annotation status & annotator for by-label curation
+    predicates = [];
+    data.predicates.forEach(group => {
+      group.annotations.forEach(a => {
+        predicates.push({
+          id: a.predicate_id,
+          predicate_label: a.label,
+          predicate_text: a.text,
+          start_offset: group.start_offset,
+          end_offset: group.end_offset,
+          status: a.status,
+          conflict: group.conflict,
+          annotator: a.annotator,
+          annotator_id: a.annotator_id
+        });
+      });
+    });
+
+    roles = [];
+    data.roles.forEach(group => {
+      group.annotations.forEach(a => {
+        roles.push({
+          id: a.role_id,
+          predicate_id: group.predicate_id,
+          role_label: a.label,
+          role_text: a.text,
+          start_offset: group.start_offset,
+          end_offset: group.end_offset,
+          status: a.status,
+          conflict: group.conflict,
+          annotator: a.annotator,
+          annotator_id: a.annotator_id
+        });
+      });
+    });
+
+  }
+
+  render();
+  updateSRLDropdown();
+}
+
+
+/* ===================== ANNOTATE ===================== */
+
+
+document.getElementById("textBox").addEventListener("mouseup", async () => {
+  if (MODE === "curate") return;
+  if (!canEditAnnotations) return;
+
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+
+  const range = sel.getRangeAt(0);
+
+  // MUST be a text node
+  if (range.startContainer.nodeType !== Node.TEXT_NODE) {
+    sel.removeAllRanges();
+    return;
+  }
+
+  const nodeText = range.startContainer.textContent;
+  let start = range.startOffset;
+  let end = range.endOffset;
+
+  // Expand to full word
+  while (start > 0 && /\S/.test(nodeText[start - 1])) start--;
+  while (end < nodeText.length && /\S/.test(nodeText[end])) end++;
+
+  const expandedRange = document.createRange();
+  expandedRange.setStart(range.startContainer, start);
+  expandedRange.setEnd(range.startContainer, end);
+
+  const text = expandedRange.toString().trim();
+  if (!text) {
+    sel.removeAllRanges();
+    return;
+  }
+
+  // 🔑 CRITICAL: sentence container
+  let node = range.startContainer.parentElement;
+  const sentenceDiv = node.closest(".sentence");
+  if (!sentenceDiv) {
+    sel.removeAllRanges();
+    return;
+  }
+
+  // 🔑 CORRECT OFFSET COMPUTATION (same as POS)
+  const sentenceStart = parseInt(sentenceDiv.dataset.start, 10);
+
+  const preRange = document.createRange();
+  preRange.setStart(sentenceDiv.firstChild, 0);
+  preRange.setEnd(expandedRange.startContainer, expandedRange.startOffset);
+
+  const startInSentence = preRange.toString().length;
+  const absStart = sentenceStart + startInSentence;
+  const absEnd = absStart + text.length;
+
+  // ---- Create Predicate or Role ----
+  // Resolve SRL label
+  const label =
+    srlLabel.value === "custom"
+      ? customSRL.value.trim()
+      : srlLabel.value;
+
+  // 🚫 Custom label validation (ISSUE 4 FIX)
+  if (srlLabel.value === "custom" && !customSRL.value.trim()) {
+    alert("Enter a custom SRL label");
+    return;
+  }
+
+  if (!label) {
+    alert("Select an SRL label first");
+    return;
+  }
+
+
+    if (label === "PRED") {
+    // ---------- CREATE PREDICATE ----------
+    const res = await fetch(`${API}/srl/predicate`, {
+      method: "POST",
+      headers: { ...AUTH, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        document_id: documentId,
+        start_offset: absStart,
+        end_offset: absEnd,
+        predicate_label: "PRED",
+        predicate_text: text
+      })
+    });
+
+    const newPred = await res.json();
+    predicates.push(newPred);
+    selectedPredicate = newPred;   // auto-select
+    updateSRLDropdown();
+
+  } else {
+    // ---------- CREATE ROLE ----------
+    if (!selectedPredicate) {
+      alert("Select a predicate first");
+      return;
+    }
+
+    const res = await fetch(`${API}/srl/role`, {
+      method: "POST",
+      headers: { ...AUTH, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        document_id: documentId,
+        predicate_id: selectedPredicate.id,
+        start_offset: absStart,
+        end_offset: absEnd,
+        role_label: label,
+        role_text: text
+      })
+    });
+
+    roles.push(await res.json());
+    updateSRLDropdown();
+  }
+
+
+
+  sel.removeAllRanges();
+  render();
+});
+
+
+
+/* ===================== CLICK ===================== */
+
+// document.getElementById("textBox").addEventListener("click", e => {
+//   const span = e.target.closest(".predicate");
+//   if (!span) return;
+
+//   const pid = parseInt(span.dataset.id);
+//   selectedPredicate = predicates.find(p => p.id === pid);
+
+//   document.getElementById("predicateText").innerText =
+//     selectedPredicate.predicate_text;
+
+//   // 🔹 VISUAL STATE
+//   document.querySelectorAll(".predicate").forEach(s =>
+//     s.classList.remove("active-predicate")
+//   );
+//   span.classList.add("active-predicate");
+// });
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    selectedPredicate = null;
+    updateSRLDropdown();
+    document.getElementById("predicateText").innerText =
+      "No predicate selected";
+
+    document.querySelectorAll(".predicate").forEach(s =>
+      s.classList.remove("active-predicate")
+    );
+  }
+});
+
+async function sendSRLConsensus(url, payload) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Id": String(user.user_id)
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.detail || "Curation failed");
+      return false;
+    }
+    return true;
+  }
+
+  
+/* ===================== CLICK HANDLER ===================== */
+
+document.getElementById("textBox").addEventListener("click", async (e) => {
+
+  /* =====================
+     FIND CLICKED SPAN
+     ===================== */
+  const span = e.target.closest("span.predicate, span.role");
+  if (!span) return;
+
+  const inspector = document.getElementById("annotationInspector");
+  const details = document.getElementById("annoDetails");
+  const approveBtn = document.getElementById("approveBtn");
+  const rejectBtn = document.getElementById("rejectBtn");
+  const deleteBtn = document.getElementById("deleteBtn");
+
+  /* =====================
+     RESET INSPECTOR
+     ===================== */
+  inspector.style.display = "block";
+  details.innerHTML = "";
+  approveBtn.style.display = "none";
+  rejectBtn.style.display = "none";
+  deleteBtn.style.display = "none";
+  deleteBtn.onclick = null;
+
+  /* =====================
+     RESOLVE SPAN BY (start_offset, end_offset) — like POS/spanrel
+     ===================== */
+  let spanStart = null;
+  let spanEnd = null;
+  const rawId = span.dataset.id;
+  const annoId = (rawId && rawId !== "undefined") ? Number(rawId) : null;
+
+  if (span.dataset.startOffset != null && span.dataset.endOffset != null) {
+    spanStart = parseInt(span.dataset.startOffset, 10);
+    spanEnd = parseInt(span.dataset.endOffset, 10);
+  } else if (annoId !== null) {
+    const pred = predicates.find(p => p.id === annoId);
+    const r = roles.find(rr => rr.id === annoId);
+    if (pred) { spanStart = pred.start_offset; spanEnd = pred.end_offset; }
+    else if (r) { spanStart = r.start_offset; spanEnd = r.end_offset; }
+  }
+  if (spanStart == null || spanEnd == null) {
+    const sentenceDiv = span.closest(".sentence");
+    if (!sentenceDiv) return;
+    const sentStart = Number(sentenceDiv.dataset.start);
+    const preRange = document.createRange();
+    preRange.setStart(sentenceDiv.firstChild, 0);
+    preRange.setEnd(span.firstChild || span, 0);
+    spanStart = sentStart + preRange.toString().length;
+    spanEnd = spanStart + span.textContent.length;
+  }
+
+  const predsAtSpan = predicates.filter(p => p.start_offset === spanStart && p.end_offset === spanEnd);
+  const rolesAtSpan = roles.filter(r => r.start_offset === spanStart && r.end_offset === spanEnd);
+  if (predsAtSpan.length === 0 && rolesAtSpan.length === 0) {
+    console.warn("SRL click: no annotations at this span");
+    return;
+  }
+
+  const spanText = (predsAtSpan[0] && predsAtSpan[0].predicate_text) || (rolesAtSpan[0] && rolesAtSpan[0].role_text) || originalText.slice(spanStart, spanEnd);
+
+  selectedPredicateGroup = { start_offset: spanStart, end_offset: spanEnd, label: "" };
+
+  /* =====================
+     ANNOTATE MODE — show all labels at this span with Delete
+     ===================== */
+  if (MODE === "annotate") {
+    let firstPred = predsAtSpan[0] || null;
+    if (firstPred) selectedPredicate = firstPred;
+    updateSRLDropdown();
+    document.querySelectorAll(".predicate").forEach(s => s.classList.remove("active-predicate"));
+    if (span.classList.contains("predicate")) span.classList.add("active-predicate");
+
+    let html = "<b>Text:</b> " + spanText + "<br><b>Span:</b> [" + spanStart + ", " + spanEnd + "]<br><br>";
+    if (predsAtSpan.length > 0) {
+      html += "<b>Predicates at this span</b><br>";
+      predsAtSpan.forEach(p => {
+        html += "PRED — " + (p.predicate_label || "PRED") + " <small>(" + (p.status || "pending") + ")</small> ";
+        html += "<button type=\"button\" class=\"del-pred srl-delete\" data-id=\"" + p.id + "\">Delete</button><br>";
+      });
+      html += "<br>";
+    }
+    if (rolesAtSpan.length > 0) {
+      const byPred = {};
+      rolesAtSpan.forEach(r => {
+        byPred[r.predicate_id] = byPred[r.predicate_id] || [];
+        byPred[r.predicate_id].push(r);
+      });
+      Object.keys(byPred).forEach(pid => {
+        const predObj = predicates.find(p => p.id === Number(pid));
+        html += "<b>Roles (predicate \"" + (predObj ? predObj.predicate_text : pid) + "\")</b><br>";
+        byPred[pid].forEach(r => {
+          html += r.role_label + " <small>(" + (r.status || "pending") + ")</small> ";
+          html += "<button type=\"button\" class=\"del-role srl-delete\" data-id=\"" + r.id + "\">Delete</button><br>";
+        });
+        html += "<br>";
+      });
+    }
+    details.innerHTML = html;
+    deleteBtn.style.display = "none";
+    approveBtn.style.display = "none";
+    rejectBtn.style.display = "none";
+    details.querySelectorAll("button.del-pred").forEach(btn => {
+      btn.onclick = async () => {
+        if (!canEditAnnotations) return;
+        const id = Number(btn.dataset.id);
+        if (!confirm("Delete this predicate and all its roles?")) return;
+        await fetch(API + "/srl/predicate/" + id, { method: "DELETE", headers: AUTH });
+        roles = roles.filter(r => r.predicate_id !== id);
+        predicates = predicates.filter(p => p.id !== id);
+        selectedPredicate = null;
+        updateSRLDropdown();
+        inspector.style.display = "none";
+        render();
+      };
+    });
+    details.querySelectorAll("button.del-role").forEach(btn => {
+      btn.onclick = async () => {
+        if (!canEditAnnotations) return;
+        const id = Number(btn.dataset.id);
+        if (!confirm("Delete this role?")) return;
+        await fetch(API + "/srl/role/" + id, { method: "DELETE", headers: AUTH });
+        roles = roles.filter(r => r.id !== id);
+        inspector.style.display = "none";
+        render();
+      };
+    });
+    return;
+  }
+
+  /* =====================
+     CURATE MODE — show all labels at this span with Approve/Reject (like POS/spanrel)
+     ===================== */
+  const byLabelPred = {};
+  predsAtSpan.forEach(a => {
+    if (!byLabelPred[a.predicate_label]) byLabelPred[a.predicate_label] = [];
+    byLabelPred[a.predicate_label].push(a);
+  });
+  // Group roles by logical predicate (text + span), not by predicate_id, so we show one
+  // "Roles (predicate \"X\")" section with consolidated labels (arg1 — 2 users, arg0 — 1 user).
+  const rolesByPredKey = {};
+  const predInfoByKey = {};
+  rolesAtSpan.forEach(r => {
+    const predObj = predicates.find(p => p.id === Number(r.predicate_id));
+    const key = predObj
+      ? (predObj.predicate_text || "") + "_" + predObj.start_offset + "_" + predObj.end_offset
+      : "pid_" + r.predicate_id;
+    if (!rolesByPredKey[key]) {
+      rolesByPredKey[key] = [];
+      predInfoByKey[key] = predObj;
+    }
+    rolesByPredKey[key].push(r);
+  });
+
+  let detailsHtml = "<b>Text:</b> " + spanText + "<br><b>Span:</b> [" + spanStart + ", " + spanEnd + "]<br><br>";
+  const norm = s => (String(s || "").toLowerCase().trim());
+
+  if (Object.keys(byLabelPred).length > 0) {
+    detailsHtml += "<b>Predicates at this span</b><br>";
+    Object.entries(byLabelPred).forEach(([label, anns]) => {
+      const allPending = anns.every(a => norm(a.status) === "pending");
+      const allApproved = anns.every(a => norm(a.status) === "approved");
+      const allRejected = anns.every(a => norm(a.status) === "rejected");
+      const safeLabel = (label || "").replace(/"/g, "&quot;");
+      let actionUI = "";
+      if (allPending) {
+        actionUI = "<button type=\"button\" class=\"srl-approve\" data-srl-label=\"" + safeLabel + "\" data-srl-action=\"approved\" onclick=\"curatePredicateLabel(this)\">Approve</button> " +
+          "<button type=\"button\" class=\"srl-reject\" data-srl-label=\"" + safeLabel + "\" data-srl-action=\"rejected\" onclick=\"curatePredicateLabel(this)\">Reject</button>";
+      } else if (allApproved) actionUI = "<span style=\"color:green;\">✅ Approved</span>";
+      else if (allRejected) actionUI = "<span style=\"color:red;\">❌ Rejected</span>";
+      else actionUI = "<span style=\"color:#999;\">⏳ Partially curated</span>";
+      detailsHtml += "<div style=\"margin-bottom:8px;\"><b>" + label + "</b> — <b>" + anns.length + " user" + (anns.length !== 1 ? "s" : "") + "</b> " + actionUI + "</div>";
+    });
+    detailsHtml += "<br>";
+  }
+
+  Object.keys(rolesByPredKey).forEach(key => {
+    const predObj = predInfoByKey[key];
+    const group = rolesByPredKey[key];
+    const byLabelRole = {};
+    group.forEach(a => {
+      if (!byLabelRole[a.role_label]) byLabelRole[a.role_label] = [];
+      byLabelRole[a.role_label].push(a);
+    });
+    const predText = predObj ? predObj.predicate_text : key.replace(/^pid_/, "id ");
+    const predApproved = predObj && norm(predObj.status) === "approved";
+    const predRejected = predObj && norm(predObj.status) === "rejected";
+    detailsHtml += "<b>Roles (predicate \"" + predText + "\")</b>";
+    if (predRejected) detailsHtml += " <span style=\"color:#999;\">❌ Predicate rejected</span><br>";
+    else if (!predApproved) detailsHtml += " <span style=\"color:#999;\">⏳ Approve predicate first</span><br>";
+    else {
+      detailsHtml += "<br>";
+      Object.entries(byLabelRole).forEach(([label, anns]) => {
+        const allPending = anns.every(a => norm(a.status) === "pending");
+        const allApproved = anns.every(a => norm(a.status) === "approved");
+        const allRejected = anns.every(a => norm(a.status) === "rejected");
+        const safeLabel = (label || "").replace(/"/g, "&quot;");
+        const pid = predObj ? predObj.id : (group[0] && group[0].predicate_id);
+        let actionUI = "";
+        if (allPending) {
+          actionUI = "<button type=\"button\" class=\"srl-approve\" data-srl-role-label=\"" + safeLabel + "\" data-srl-role-pid=\"" + pid + "\" data-srl-role-start=\"" + spanStart + "\" data-srl-role-end=\"" + spanEnd + "\" data-srl-action=\"approved\" onclick=\"curateRoleLabel(this)\">Approve</button> " +
+            "<button type=\"button\" class=\"srl-reject\" data-srl-role-label=\"" + safeLabel + "\" data-srl-role-pid=\"" + pid + "\" data-srl-role-start=\"" + spanStart + "\" data-srl-role-end=\"" + spanEnd + "\" data-srl-action=\"rejected\" onclick=\"curateRoleLabel(this)\">Reject</button>";
+        } else if (allApproved) actionUI = "<span style=\"color:green;\">✅ Approved</span>";
+        else if (allRejected) actionUI = "<span style=\"color:red;\">❌ Rejected</span>";
+        else actionUI = "<span style=\"color:#999;\">⏳ Partially curated</span>";
+        detailsHtml += "<div style=\"margin-bottom:8px;\">👤 <b>" + label + "</b> — <b>" + anns.length + " user" + (anns.length !== 1 ? "s" : "") + "</b><br>" + actionUI + "</div>";
+      });
+    }
+    detailsHtml += "<br>";
+  });
+
+  details.innerHTML = detailsHtml;
+  approveBtn.style.display = "none";
+  rejectBtn.style.display = "none";
+  deleteBtn.style.display = "none";
+});
+
+
+/* ===================== CONSENSUS HELPERS ===================== */
+
+/** Called from curator UI: Approve/Reject one label for the selected predicate span. All annotations with that label get updated. */
+async function curatePredicateLabel(btn) {
+  if (!selectedPredicateGroup) {
+    alert("No predicate selected");
+    return;
+  }
+  const label = (btn.getAttribute("data-srl-label") || "").replace(/&quot;/g, '"');
+  const action = btn.getAttribute("data-srl-action") || "approved";
+  if (btn) {
+    const parent = btn.parentElement;
+    if (parent) parent.querySelectorAll("button").forEach(b => { b.disabled = true; b.style.opacity = "1"; });
+  }
+  const ok = await sendSRLConsensus(
+    `${API}/curation/srl/predicate_consensus`,
+    {
+      document_id: Number(documentId),
+      start_offset: selectedPredicateGroup.start_offset,
+      end_offset: selectedPredicateGroup.end_offset,
+      label,
+      action
+    }
+  );
+  if (!ok) return;
+  await load();
+  const el = document.querySelector(
+    "[data-start-offset=\"" + selectedPredicateGroup.start_offset + "\"][data-end-offset=\"" + selectedPredicateGroup.end_offset + "\"]"
+  );
+  if (el) el.click();
+}
+
+/** Called from curator UI: Approve/Reject one label for the selected role span. All annotations with that label get updated. */
+async function curateRoleLabel(btn) {
+  const pid = btn.getAttribute("data-srl-role-pid");
+  const start = btn.getAttribute("data-srl-role-start");
+  const end = btn.getAttribute("data-srl-role-end");
+  if (pid != null && start != null && end != null) {
+    selectedRoleGroup = { predicate_id: Number(pid), start_offset: Number(start), end_offset: Number(end), label: "" };
+  }
+  if (!selectedRoleGroup) {
+    alert("No role selected");
+    return;
+  }
+  const label = (btn.getAttribute("data-srl-role-label") || "").replace(/&quot;/g, '"');
+  const action = btn.getAttribute("data-srl-action") || "approved";
+  if (btn) {
+    const parent = btn.parentElement;
+    if (parent) parent.querySelectorAll("button").forEach(b => { b.disabled = true; b.style.opacity = "1"; });
+  }
+  const ok = await sendSRLConsensus(
+    `${API}/curation/srl/role_consensus`,
+    {
+      document_id: Number(documentId),
+      predicate_id: selectedRoleGroup.predicate_id,
+      start_offset: selectedRoleGroup.start_offset,
+      end_offset: selectedRoleGroup.end_offset,
+      label,
+      action
+    }
+  );
+  if (!ok) return;
+  await load();
+  const el = document.querySelector(
+    "[data-start-offset=\"" + selectedRoleGroup.start_offset + "\"][data-end-offset=\"" + selectedRoleGroup.end_offset + "\"]"
+  );
+  if (el) el.click();
+}
+
+async function curatePredicate(label, action) {
+  if (!selectedPredicateGroup) {
+    alert("No predicate selected");
+    return;
+  }
+  const res = await fetch(
+    `${API}/curation/srl/predicate_consensus`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Id": String(user.user_id)
+      },
+      body: JSON.stringify({
+        document_id: Number(documentId),
+        start_offset: selectedPredicateGroup.start_offset,
+        end_offset: selectedPredicateGroup.end_offset,
+        label,
+        action
+      })
+    }
+  );
+  if (!res.ok) {
+    const err = await res.json();
+    alert(err.detail || "Predicate curation failed");
+    return;
+  }
+  await load();
+}
+
+
+
+async function curateRole(label, action) {
+  if (!selectedRoleGroup) {
+    alert("No role selected");
+    return;
+  }
+
+  const res = await fetch(
+    `${API}/curation/srl/role_consensus`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Id": String(user.user_id)
+      },
+      body: JSON.stringify({
+        document_id: Number(documentId),
+        predicate_id: selectedRoleGroup.predicate_id,
+        start_offset: selectedRoleGroup.start_offset,
+        end_offset: selectedRoleGroup.end_offset,
+        label,
+        action
+      })
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    console.error("Role curation failed:", err);
+    alert(err.detail || "Role curation failed");
+    return;
+  }
+
+  await load();
+}
+
+
+
+async function reloadAndReopenPredicate() {
+  await load();
+  const p = predicates.find(p =>
+    p.start_offset === selectedPredicateGroup.start_offset &&
+    p.end_offset === selectedPredicateGroup.end_offset
+  );
+  document.querySelector(`[data-id="${p?.id}"]`)?.click();
+}
+
+async function reloadAndReopenRole() {
+  await load();
+  const r = roles.find(r =>
+    r.predicate_id === selectedRoleGroup.predicate_id &&
+    r.start_offset === selectedRoleGroup.start_offset &&
+    r.end_offset === selectedRoleGroup.end_offset
+  );
+  document.querySelector(`[data-id="${r?.id}"]`)?.click();
+}
+
+async function loadSRLRoleLabels(projectId) {
+  try {
+    const res = await fetch(
+      `${API}/projects/${projectId}/labels`,
+      { headers: AUTH }
+    );
+
+    const labels = await res.json();
+    srlRoleLabels = (labels || []).filter(l => l.layer_type === "role");
+
+    const select = document.getElementById("srlLabel");
+
+    // Reset but keep predicate
+    select.innerHTML = `
+      <option value="">-- Select Label --</option>
+      <option value="PRED">PREDICATE</option>
+    `;
+
+    srlRoleLabels.forEach(label => {
+      if (label.layer_type === "role") {
+        const opt = document.createElement("option");
+        opt.value = label.label_name;
+        opt.textContent = label.label_name;
+        opt.title = label.description || "";
+        select.appendChild(opt);
+      }
+    });
+
+  } catch (err) {
+    console.error("Failed to load SRL role labels", err);
+  }
+}
+
+  function openLabelInfoPopup() {
+    const listEl = document.getElementById("labelInfoList");
+    const popup = document.getElementById("labelInfoPopup");
+    if (!listEl || !popup) return;
+    listEl.innerHTML = "";
+    const items = [
+      { label_name: "PREDICATE", description: "Predicate (verb or predicate phrase)." }
+    ].concat(srlRoleLabels);
+    if (items.length === 0) {
+      listEl.innerHTML = "<li style='color:var(--color-text-muted);'>No labels loaded.</li>";
+    } else {
+      items.forEach(l => {
+        const li = document.createElement("li");
+        li.style.marginBottom = "8px";
+        li.style.paddingBottom = "6px";
+        li.style.borderBottom = "1px solid #eee";
+        const name = document.createElement("div");
+        name.style.fontWeight = "600";
+        name.style.fontSize = "12px";
+        name.textContent = l.label_name || "";
+        const desc = document.createElement("div");
+        desc.style.fontSize = "11px";
+        desc.style.color = "var(--color-text-muted)";
+        desc.style.marginTop = "2px";
+        desc.textContent = l.description || "—";
+        li.appendChild(name);
+        li.appendChild(desc);
+        listEl.appendChild(li);
+      });
+    }
+    popup.style.display = "block";
+  }
+  function closeLabelInfoPopup() {
+    const popup = document.getElementById("labelInfoPopup");
+    if (popup) popup.style.display = "none";
+  }
+  document.getElementById("labelInfoBtn")?.addEventListener("click", (e) => { e.stopPropagation(); openLabelInfoPopup(); });
+  document.getElementById("labelInfoPopupClose")?.addEventListener("click", closeLabelInfoPopup);
+  document.addEventListener("click", (e) => {
+    const popup = document.getElementById("labelInfoPopup");
+    const wrap = document.getElementById("srlLabelWrap");
+    if (popup && wrap && popup.style.display === "block" && !wrap.contains(e.target)) closeLabelInfoPopup();
+  });
+
+/* ===================== DOWNLOAD ANNOTATIONS ===================== */
+
+document.getElementById("downloadBtn").addEventListener("click", async () => {
+  if (!documentId) {
+    alert("No document selected!");
+    return;
+  }
+  try {
+    const response = await fetch(`${API}/export/srldoc/${documentId}`, { headers: AUTH });
+    if (!response.ok) {
+      alert("Error downloading annotations");
+      return;
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `document_${documentId}_srl_annotations.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Download failed:", err);
+    alert("Failed to download SRL annotations.");
+  }
+});
+
+document.getElementById("markAsDoneBtn")?.addEventListener("click", async () => {
+  if (MODE === "curate" || !documentId) return;
+  const btn = document.getElementById("markAsDoneBtn");
+  const msgEl = document.getElementById("annotationCompleteMessage");
+  if (!btn || !msgEl) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch(
+      `${API}/documents/${documentId}/mark-annotation-complete`,
+      { method: "POST", headers: AUTH }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "Failed to mark as complete");
+      btn.disabled = false;
+      return;
+    }
+    localStorage.setItem(ANNO_LOCK_KEY, "1");
+    setEditingLocked(true);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to mark as complete");
+    btn.disabled = false;
+  }
+});
+
+
+/* ===================== INIT ===================== */
+
+
+loadSRLRoleLabels(projectId);
+load();
+</script>
+
+</body>
+</html>

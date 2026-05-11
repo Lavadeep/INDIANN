@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Span & Relation — IndiAnn</title>
+  <link rel="stylesheet" href="css/common.css">
+  <script src="js/config.js"></script>
+  <script src="js/header.js"></script>
+  <style>
+    .container {
+      display: flex;
+      padding: 20px;
+    }
+
+    .text-box {
+      flex: 2;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-surface);
+      padding: 12px;
+      margin-right: 20px;
+      height: 500px;
+      overflow-y: auto;
+    }
+
+    .sidebar {
+      flex: 1;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: 15px;
+      border-radius: var(--radius);
+    }
+
+    .block {
+      margin-bottom: 20px;
+    }
+
+    .block h3 {
+      margin-bottom: 8px;
+    }
+
+    .highlight {
+      background-color: yellow;
+      cursor: pointer;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    /* ---- Curation States (like pos) ---- */
+    .highlight.pending {
+      outline: 2px dashed #dbd679;
+    }
+    .highlight.conflict {
+      background: #fff3cd;
+      outline: 2px solid #f0ad4e;
+    }
+    .highlight.approved {
+      background: #d4edda;
+      outline: 2px solid #28a745;
+    }
+    .highlight.rejected {
+      background: #c6c5c5;
+      text-decoration: line-through;
+    }
+
+    #span-text, #relation-text {
+      background: #444;
+      color: white;
+      padding: 8px;
+      display: inline-block;
+      margin-top: 5px;
+      border-radius: 4px;
+    }
+
+    select, button {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid var(--color-border);
+    }
+
+    .sidebar button {
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+    }
+
+    .sidebar button:hover {
+      background: var(--color-primary-hover);
+    }
+
+    .relations-list {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .relations-list div {
+      background: #eee;
+      padding: 6px;
+      margin-top: 4px;
+      border-radius: 4px;
+    }
+
+    .sentence {
+      border-bottom: 1px solid #ddd;
+      padding: 5px;
+    }
+
+    .sentence:nth-child(odd) {
+      background: #f5f5f5;
+    }
+    
+    /* custom span input */
+    #custom-span-input {
+      padding: 6px 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header" aria-label="Application header">
+    <div class="app-header-left">
+      <div class="header-logo" aria-hidden="true"><img src="logo.png" alt="IITBBS" /></div>
+    </div>
+    <div class="app-header-center">
+      <a href="dashboard.html" class="app-header-title">IndiAnn</a>
+      <span id="modePill" class="mode-pill annotate"></span>
+    </div>
+    <div class="app-header-right">
+      <div class="header-profile-wrap">
+        <span id="headerUsername" class="header-user-name">User</span>
+        <button type="button" class="header-profile-btn" id="headerProfileBtn" aria-haspopup="true" aria-expanded="false" aria-label="Profile menu">&#128100;</button>
+        <div class="header-dropdown" id="headerDropdown" role="menu">
+          <a href="dashboard.html" role="menuitem">Dashboard</a>
+          <a href="#" id="headerBackToProject" role="menuitem">← Back to Project</a>
+          <div class="dropdown-divider"></div>
+          <button type="button" role="menuitem" id="headerLogoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div id="modeBanner" style="display:none; padding:8px 16px; font-weight:600;"></div>
+
+  <div class="container">
+    <!-- Text area -->
+    <div class="text-box" id="text-box">
+      <!-- document text will be injected dynamically -->
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Span block -->
+      <div class="block">
+        <h3 id="span-header">SPAN</h3>
+        <div id="span-text">No span selected</div>
+
+        <div id="spanLabelWrap" style="position:relative; display:flex; align-items:center; gap:6px;">
+          <select id="label-select" onchange="toggleCustomSpan(this.value)">
+            <option value="">-- Select Label --</option>
+          </select>
+          <button type="button" id="labelInfoBtn" title="Label info" style="opacity:0.6; padding:2px 6px; min-width:auto; font-size:11px; border-radius:4px;">ℹ️</button>
+          <div id="labelInfoPopup" style="display:none; position:absolute; left:0; top:100%; z-index:100; margin-top:4px; padding:10px; max-width:280px; max-height:320px; overflow-y:auto; background:#fff; border:1px solid var(--color-border); border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); font-size:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <strong>Labels &amp; descriptions</strong>
+              <button type="button" id="labelInfoPopupClose" style="background:none; border:none; cursor:pointer; font-size:16px;">×</button>
+            </div>
+            <ul id="labelInfoList" style="list-style:none; padding:0; margin:0;"></ul>
+          </div>
+        </div>
+
+        <!-- Custom span input (hidden by default) -->
+        <input type="text" id="custom-span-input" placeholder="Enter custom span label..." style="display:none; margin-top:5px;" />
+      </div>
+
+      <!-- Annotator: Mark as done / completion message (annotate mode only) -->
+      <div id="annotationCompleteBox" style="display:none; margin-top:12px; padding:10px; border:1px solid var(--color-border); border-radius:6px; background:var(--color-bg);">
+        <div id="annotationCompleteMessage" style="font-size:13px; margin-bottom:8px;"></div>
+        <button type="button" id="markAsDoneBtn" class="btn btn-primary" style="display:none;">Mark as done (lock annotations)</button>
+      </div>
+
+      <!-- Relation block -->
+      <div class="block">
+        <h3 id="relation-header">RELATION</h3>
+        <div id="relation-text">No relation yet</div>
+
+        <!-- Dropdowns for selecting spans -->
+        <select id="span1-select">
+          <option value="">-- Select First Span --</option>
+        </select>
+        <select id="span2-select">
+          <option value="">-- Select Second Span --</option>
+        </select>
+
+        <!-- Relation type -->
+        <select id="relation-select" onchange="toggleCustomRelation(this.value)">
+          <option value="">-- Select Relation --</option>
+       
+        </select>
+
+        <!-- Custom relation input (hidden by default) -->
+        <input type="text" id="relation-input" placeholder="Enter custom relation..." style="display:none; margin-top:5px;" />
+
+        <button id="add-relation">Add Relation</button>
+        <h4 id="existingRelationsH4" style="margin-top:12px">Existing Relations</h4> <!-- Relations dropdown -->
+        <select id="relationsDropdown"> 
+          <option value="">-- Existing Relations --</option>
+        </select>
+
+      </div>
+
+      <!-- Annotation Inspector -->
+      <div id="annotationInspector" style="
+        display:none;
+        margin-top:15px;
+        padding:10px;
+        border:1px solid #ccc;
+        border-radius:6px;
+        background:#fafafa;
+      ">
+        <h4 style="margin-top:0">Selected Annotation</h4>
+        <div id="annoDetails" style="font-size:14px;"></div>
+        <button id="deleteAnnoBtn"
+                style="margin-top:8px;background:#e74c3c;color:white;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;">
+          Delete
+        </button>
+      </div>
+
+
+      <button id="downloadBtn" class="btn btn-outline-primary">⬇️ Download Annotations</button>
+
+    </div>
+  </div>
+
+<script>
+  const API = window.APP_CONFIG.API_BASE_URL;
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!user || !user.user_id) {
+    window.location.href = "login.html";
+  }
+
+  const AUTH_HEADERS = {
+    "X-User-Id": String(user.user_id)
+  };
+  var headerUserEl = document.getElementById("headerUsername");
+  if (headerUserEl) headerUserEl.textContent = user?.username || "User";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const documentId = urlParams.get("document_id");
+  const projectId = urlParams.get("project_id");
+  const MODE = urlParams.get("mode") || "annotate";
+
+  const modePill = document.getElementById("modePill");
+  var backLink = document.getElementById("headerBackToProject");
+  if (backLink && projectId) backLink.href = "project.html?project_id=" + projectId + "&mode=" + MODE;
+  document.getElementById("headerLogoutBtn")?.addEventListener("click", function () {
+    localStorage.removeItem("user");
+    window.location.href = "login.html";
+  });
+
+  if (modePill) {
+    modePill.textContent = MODE === "curate" ? "Curate" : "Annotate";
+    modePill.className = "mode-pill " + (MODE === "curate" ? "curate" : "annotate");
+  }
+
+  const banner = document.getElementById("modeBanner");
+  if (MODE === "curate") {
+    if (banner) { banner.textContent = "SPAN–RELATION CURATION MODE"; banner.style.background = "#fef3c7"; }
+  } else {
+    if (banner) banner.style.display = "none";
+  }
+
+  const textBox = document.getElementById("text-box");
+  const spanText = document.getElementById("span-text");
+  const relationText = document.getElementById("relation-text");
+  const relationsList = document.getElementById("relations-list");
+  const labelSelect = document.getElementById("label-select");
+
+  const span1Select = document.getElementById("span1-select");
+  const span2Select = document.getElementById("span2-select");
+  const relationSelect = document.getElementById("relation-select");
+  const relationInput = document.getElementById("relation-input");
+
+  let selectedSpans = [];
+  let spanMap = {}; // span_id -> {text, label}
+  let originalContent = '';
+  let selectedAnnotation = null;//annotator inspector
+  let relations = []; // store all relations for dropdown
+  let spans = [];              // flattened span annotations
+  let selectedSpan = null;     // one concrete span annotation
+  let selectedSpanGroup = null; // group info (start, end)
+  let LAST_CLICKED_SPAN_ID = null;
+  let spanRelLabels = [];      // for label info popup
+  let canEditAnnotations = true;  // false after annotator clicks "Mark as done"
+  const ANNO_LOCK_KEY = `anno_locked_spanrel_${documentId}_${user?.user_id || "u"}`;
+
+  function setEditingLocked(locked) {
+    canEditAnnotations = !locked;
+    const msgEl = document.getElementById("annotationCompleteMessage");
+    const doneBtn = document.getElementById("markAsDoneBtn");
+    const box = document.getElementById("annotationCompleteBox");
+    if (MODE === "curate") {
+      box?.style.setProperty("display", "none");
+      return;
+    }
+    if (box) box.style.display = "block";
+    if (locked) {
+      if (msgEl) {
+        msgEl.textContent = "You have marked this document as complete. You can no longer change annotations.";
+        msgEl.style.color = "var(--color-text-muted)";
+      }
+      if (doneBtn) {
+        doneBtn.style.opacity = "0";
+        doneBtn.style.pointerEvents = "none";
+        // keep layout stable briefly then hide
+        setTimeout(() => { if (doneBtn) doneBtn.style.display = "none"; }, 180);
+      }
+    } else {
+      if (msgEl) {
+        msgEl.textContent = "When you finish annotating, mark as done to lock your annotations.";
+        msgEl.style.color = "var(--color-text-muted)";
+      }
+      if (doneBtn) {
+        doneBtn.style.display = "block";
+        doneBtn.style.opacity = "1";
+        doneBtn.style.pointerEvents = "auto";
+      }
+    }
+
+    // Disable/enable relevant controls
+    const disableIds = [
+      "add-relation",
+      "label-select",
+      "relation-select",
+      "span1-select",
+      "span2-select",
+      "custom-span-input",
+      "relation-input"
+    ];
+    disableIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (locked) el.setAttribute("disabled", "true");
+      else el.removeAttribute("disabled");
+    });
+  }
+
+  if (MODE === "curate") {
+
+    // Hide annotation-only UI; keep "Existing Relations" dropdown to select relation to curate
+    document.getElementById("span-text")?.style.setProperty("display", "none");
+    document.getElementById("relation-text")?.style.setProperty("display", "none");
+    document.getElementById("relation-select")?.style.setProperty("display", "none");
+    document.getElementById("span1-select")?.style.setProperty("display", "none");
+    document.getElementById("span2-select")?.style.setProperty("display", "none");
+    document.getElementById("label-select")?.style.setProperty("display", "none");
+    document.getElementById("custom-span-input")?.style.setProperty("display", "none");
+    document.getElementById("relation-input")?.style.setProperty("display", "none");
+    document.getElementById("span-header")?.style.setProperty("display", "none");
+    document.getElementById("relation-header")?.style.setProperty("display", "none");
+    document.getElementById("add-relation")?.style.setProperty("display", "none");
+    document.getElementById("annotationCompleteBox")?.style.setProperty("display", "none");
+    // relationsDropdown and existingRelationsH4 stay visible so curator can select relation to curate
+
+  }
+
+  /**
+   * Use newline split when content is sentence-segmented; else split by sentence-ending punctuation.
+   * Supports English (.!?) and Indic (। ॥) so Telugu/Hindi/Odia/Bengali render sentence-by-sentence.
+   */
+  function computeSentences(originalContent) {
+    if (!originalContent || typeof originalContent !== "string") return [];
+    const lines = originalContent.split("\n");
+    if (lines.length > 1) {
+      const sentences = [];
+      let pos = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const start = pos;
+        const end = pos + line.length;
+        sentences.push({ start, end, text: line });
+        pos = end + (i < lines.length - 1 ? 1 : 0);
+      }
+      return sentences;
+    }
+    const content = originalContent;
+    const sentences = [];
+    let pos = 0;
+    while (pos < content.length) {
+      while (pos < content.length && /\s/.test(content[pos])) pos++;
+      if (pos >= content.length) break;
+      const start = pos;
+      const rest = content.slice(pos);
+      const match = rest.match(/\S[\s\S]*?[.?!\u0964\u0965]+/);
+      if (match) {
+        let end = pos + match[0].length;
+        while (end < content.length && /\s/.test(content[end])) end++;
+        sentences.push({ start, end, text: content.slice(start, end).trim() });
+        pos = end;
+      } else {
+        const m2 = rest.match(/\S[\s\S]*/);
+        if (m2) {
+          const end = pos + m2[0].length;
+          sentences.push({ start, end, text: content.slice(start, end).trim() });
+          pos = end;
+        } else break;
+      }
+    }
+    return sentences;
+  }
+
+async function curateSpanLabel(label, action, context = "span") {
+ 
+  if (!selectedSpanGroup) {
+    alert("No span selected");
+    return;
+  }
+
+  const target = spans.find(s =>
+    s.start_offset === selectedSpanGroup.start_offset &&
+    s.end_offset === selectedSpanGroup.end_offset &&
+    s.span_label === label &&
+    s.status === "pending"
+  );
+
+  if (!target) return;
+
+  await fetch(
+    `${API}/curation/span/${target.id}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Id": String(user.user_id)
+      },
+      body: JSON.stringify({ action })
+    }
+  );
+  // 🔄 Reload fresh state
+  await loadDocument();
+
+  // 🔁 Context-aware refresh
+  if (context === "relation") {
+    // Stay in relation inspector
+    if (selectedAnnotation && selectedAnnotation.type === "relation") {
+      const dropdown = document.getElementById("relationsDropdown");
+      dropdown.value = selectedAnnotation.id;
+      dropdown.dispatchEvent(new Event("change"));
+    }
+  } else {
+    const spanEl = document.querySelector(
+      `.highlight[data-start-offset="${selectedSpanGroup.start_offset}"][data-end-offset="${selectedSpanGroup.end_offset}"]`
+    );
+    if (spanEl) spanEl.click();
+  }
+}
+
+
+async function curateRelation(action) {
+  if (!selectedAnnotation || selectedAnnotation.type !== "relation") return;
+
+  await fetch(
+    `${API}/curation/relation/${selectedAnnotation.id}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Id": String(user.user_id)
+      },
+      body: JSON.stringify({ action })
+    }
+  );
+
+  // 🔄 Reload data
+  await loadDocument();
+
+  // 🔁 Re-open inspector to reflect new relation status
+  const dropdown = document.getElementById("relationsDropdown");
+  dropdown.value = selectedAnnotation.id;
+  dropdown.dispatchEvent(new Event("change"));
+}
+
+
+
+
+  // ---------------- Load document + existing annotations ----------------
+  async function loadDocument() {
+    try {
+      const docRes = await fetch(`${API}/documents/${documentId}`,{ headers: AUTH_HEADERS });
+
+
+      const doc = await docRes.json();
+      
+      // Assign to the global variable
+      originalContent = doc.content || '';
+      if (!originalContent) return;
+
+      // Keep backend sentence boundaries intact; only normalize line endings.
+      originalContent = originalContent.replace(/\r\n?/g, "\n");
+
+      // Completion UI (do not auto-call annotation-status here; backend may forbid on some layers)
+      if (MODE !== "curate") {
+        const lockedLocal = localStorage.getItem(ANNO_LOCK_KEY) === "1";
+        setEditingLocked(lockedLocal);
+        try {
+          const statusRes = await fetch(
+            `${API}/documents/${documentId}/annotation-status`,
+            { headers: AUTH_HEADERS }
+          );
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            const lockedServer = statusData.can_edit === false || statusData.user_has_completed === true;
+            if (lockedServer) localStorage.setItem(ANNO_LOCK_KEY, "1");
+            else localStorage.removeItem(ANNO_LOCK_KEY);
+            setEditingLocked(lockedServer);
+          } else if (statusRes.status === 403) {
+            // backend forbids status on some layers; keep local lock only
+          }
+        } catch (e) {
+          // keep local lock only
+        }
+      }
+
+      // Fetch spans
+      spans = [];
+      if (MODE === "curate") {
+        const res = await fetch(
+          `${API}/curation/span/document/${documentId}`,
+          { headers: AUTH_HEADERS }
+        );
+        const data = await res.json();
+
+        // flatten like pos.html
+        data.spans.forEach(group => {
+          group.annotations.forEach(a => {
+            spans.push({
+              id: a.span_id,
+              span_label: a.label,
+              start_offset: group.start_offset,
+              end_offset: group.end_offset,
+              status: a.status,
+              conflict: group.conflict
+            });
+          });
+        });
+
+      } else {
+        const spanRes = await fetch(
+          `${API}/span_annotations/${documentId}`,
+          { headers: AUTH_HEADERS }
+        );
+        spans = await spanRes.json();
+      }
+
+      
+      // Populate the spanMap
+      spans.forEach(s => {
+        spanMap[s.id] = { text: originalContent.slice(s.start_offset, s.end_offset), label: s.span_label };
+      });
+
+      // Compute sentences from clean, original text
+      const sentences = computeSentences(originalContent);
+
+      // --- NEW RENDERING LOGIC (from pos.html) ---
+      textBox.innerHTML = ''; // Clear the text box
+      
+      sentences.forEach(sentence => {
+        const { start: sentStart, end: sentEnd, text: sentText } = sentence;
+        
+        let relevantSpans = spans.filter(span =>
+          span.start_offset < sentEnd && span.end_offset > sentStart
+        );
+        const localTags = [];
+        if (MODE === "curate") {
+          const seen = new Set();
+          relevantSpans.forEach(span => {
+            const key = `${span.start_offset}-${span.end_offset}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            const group = relevantSpans.filter(s =>
+              s.start_offset === span.start_offset && s.end_offset === span.end_offset
+            );
+            const hasConflict = group.some(s => s.conflict);
+            const anyApproved = group.some(s => (String(s.status || "").toLowerCase().trim()) === "approved");
+            const anyRejected = group.some(s => (String(s.status || "").toLowerCase().trim()) === "rejected");
+            let cls = "highlight pending";
+            if (hasConflict) cls = "highlight conflict";
+            else if (anyApproved) cls = "highlight approved";
+            else if (anyRejected) cls = "highlight rejected";
+            localTags.push({ pos: Math.max(0, span.start_offset - sentStart), type: 'start', start_offset: span.start_offset, end_offset: span.end_offset, cls });
+            localTags.push({ pos: Math.min(sentText.length, span.end_offset - sentStart), type: 'end' });
+          });
+        } else {
+          relevantSpans.forEach(span => {
+            localTags.push({ pos: Math.max(0, span.start_offset - sentStart), type: 'start', label: span.span_label, id: span.id, status: span.status, conflict: span.conflict });
+            localTags.push({ pos: Math.min(sentText.length, span.end_offset - sentStart), type: 'end' });
+          });
+        }
+        localTags.sort((a, b) => a.pos - b.pos || (a.type === 'end' ? -1 : 1));
+        let localHtml = '';
+        let lastPos = 0;
+        localTags.forEach(tag => {
+          localHtml += sentText.slice(lastPos, tag.pos);
+          if (tag.type === 'start') {
+            if (MODE === "curate") {
+              localHtml += `<span class="${tag.cls}" data-start-offset="${tag.start_offset}" data-end-offset="${tag.end_offset}">`;
+            } else {
+              let cls = "highlight pending";
+              if (tag.status === "approved") cls = "highlight approved";
+              if (tag.status === "rejected") cls = "highlight rejected";
+              if (tag.conflict) cls = "highlight conflict";
+              localHtml += `<span class="${cls}" data-label="${tag.label}" data-id="${tag.id}">`;
+            }
+          } else {
+            localHtml += `</span>`;
+          }
+          lastPos = tag.pos;
+        });
+        localHtml += sentText.slice(lastPos);
+        
+        // Create and append sentence div
+        const div = document.createElement('div');
+        div.className = 'sentence';
+        div.innerHTML = localHtml;
+        textBox.appendChild(div);
+      });
+      // --- END OF NEW RENDERING LOGIC ---
+
+      // Restore spans to dropdowns (this is unchanged)
+      spans.forEach(s => addSpanToDropdowns(s, true));
+
+      // Restore relations (this is unchanged)
+      const relRes = await fetch(`${API}/relation_annotations/${documentId}`,{headers: AUTH_HEADERS });
+      const rels = await relRes.json();
+      relations = []; // reset
+      const relationsDropdown = document.getElementById("relationsDropdown");
+      relationsDropdown.innerHTML = `<option value="">-- Select Relation --</option>`;
+
+      rels.forEach(r => {
+        const span1 = spans.find(s => s.id === r.span1_id);
+        const span2 = spans.find(s => s.id === r.span2_id);
+        if (!span1 || !span2) return;
+
+        const relString =
+          `${originalContent.slice(span1.start_offset, span1.end_offset)} (${span1.span_label}) ` +
+          `---[${r.relation_label}]---> ` +
+          `${originalContent.slice(span2.start_offset, span2.end_offset)} (${span2.span_label})`;
+
+        relations.push({
+          id: r.id,
+          text: relString,
+
+          // ✅ THIS IS THE KEY FIX
+          span1_start: span1.start_offset,
+          span1_end: span1.end_offset,
+          span2_start: span2.start_offset,
+          span2_end: span2.end_offset,
+
+          status: r.status
+        });
+
+        const opt = document.createElement("option");
+        opt.value = r.id;
+        opt.textContent = relString;
+        relationsDropdown.appendChild(opt);
+      });
+
+
+
+    } catch (error) {
+      console.error("Failed to load document and annotations:", error);
+      textBox.textContent = "Error loading document.";
+    }
+  }
+
+
+
+  textBox.addEventListener("click", (e) => {
+  const spanEl = e.target.closest(".highlight");
+  if (!spanEl) return;
+
+  let clickedSpan = null;
+  if (MODE === "curate" && spanEl.dataset.startOffset != null && spanEl.dataset.endOffset != null) {
+    const startOffset = parseInt(spanEl.dataset.startOffset, 10);
+    const endOffset = parseInt(spanEl.dataset.endOffset, 10);
+    selectedSpanGroup = { start_offset: startOffset, end_offset: endOffset };
+    clickedSpan = spans.find(s => s.start_offset === startOffset && s.end_offset === endOffset) || null;
+    if (!clickedSpan) return;
+    selectedAnnotation = { type: "span", id: clickedSpan.id };
+    LAST_CLICKED_SPAN_ID = clickedSpan.id;
+  } else {
+    const spanId = parseInt(spanEl.dataset.id, 10);
+    if (!spanId) return;
+    clickedSpan = spans.find(s => s.id === spanId);
+    if (!clickedSpan) return;
+    selectedAnnotation = { type: "span", id: spanId };
+    if (MODE === "curate") {
+      LAST_CLICKED_SPAN_ID = clickedSpan.id;
+      selectedSpanGroup = { start_offset: clickedSpan.start_offset, end_offset: clickedSpan.end_offset };
+    }
+  }
+
+  // ==========================
+  // CURATE MODE — SPAN CONSENSUS
+  // ==========================
+  if (MODE === "curate") {
+    const sameGroup = spans.filter(s =>
+      s.start_offset === selectedSpanGroup.start_offset &&
+      s.end_offset === selectedSpanGroup.end_offset
+    );
+
+    // group by label
+    const byLabel = {};
+    sameGroup.forEach(s => {
+      if (!byLabel[s.span_label]) byLabel[s.span_label] = [];
+      byLabel[s.span_label].push(s);
+    });
+
+    document.getElementById("annoDetails").innerHTML = `
+      <b>Type:</b> Span<br>
+      <b>Text:</b> ${originalContent.slice(
+        selectedSpanGroup.start_offset,
+        selectedSpanGroup.end_offset
+      )}<br>
+      <b>Span:</b> [${selectedSpanGroup.start_offset}, ${selectedSpanGroup.end_offset}]<br><br>
+
+      ${Object.entries(byLabel).map(([label, anns]) => {
+        const norm = s => (String(s || "").toLowerCase().trim());
+        const allPending = anns.every(a => norm(a.status) === "pending");
+        const allApproved = anns.every(a => norm(a.status) === "approved");
+        const allRejected = anns.every(a => norm(a.status) === "rejected");
+
+        let actionUI = "";
+        if (allPending) {
+          actionUI = `
+            <button onclick="curateSpanLabel('${label}', 'approved')">Approve</button>
+            <button onclick="curateSpanLabel('${label}', 'rejected')">Reject</button>
+          `;
+        } else if (allApproved) {
+          actionUI = `<span style="color:green;">✅ Approved</span>`;
+        } else if (allRejected) {
+          actionUI = `<span style="color:red;">❌ Rejected</span>`;
+        } else {
+          actionUI = `<span style="color:#999;">⏳ Partially curated</span>`;
+        }
+
+        const userCount = anns.length;
+        return `
+          <div style="margin-bottom:8px;">
+            👤 <b>${label}</b> — <b>${userCount} user${userCount !== 1 ? "s" : ""}</b><br>
+            ${actionUI}
+          </div>
+        `;
+      }).join("")}
+    `;
+
+    document.getElementById("deleteAnnoBtn").style.display = "none";
+    document.getElementById("annotationInspector").style.display = "block";
+    return;
+  }
+
+  // ==========================
+  // ANNOTATE MODE (UNCHANGED)
+  // ==========================
+  document.getElementById("annoDetails").innerHTML = `
+    <b>Type:</b> Span<br>
+    <b>Text:</b> ${spanEl.textContent}<br>
+    <b>Label:</b> ${clickedSpan.span_label}
+  `;
+
+  document.getElementById("deleteAnnoBtn").style.display = "block";
+  document.getElementById("annotationInspector").style.display = "block";
+});
+
+
+  document.getElementById("relationsDropdown").addEventListener("change", (e) => {
+  const relId = parseInt(e.target.value);
+  if (!relId) return;
+
+  const rel = relations.find(r => r.id === relId);
+  if (!rel) return;
+
+  selectedAnnotation = {
+    type: "relation",
+    id: rel.id,
+    text: rel.text
+  };
+
+  // ==========================
+  // CURATE MODE — RELATION CONSENSUS
+  // ==========================
+  if (MODE === "curate") {
+
+    // --------------------
+    // Relation status UI
+    // --------------------
+    let relationStatusUI = "";
+
+    if (rel.status === "approved") {
+      relationStatusUI = `<span style="color:green;">✅ Relation Approved</span>`;
+    } else if (rel.status === "rejected") {
+      relationStatusUI = `<span style="color:red;">❌ Relation Rejected</span>`;
+    }
+
+
+  const span1 = spans.find(s =>
+    s.start_offset === rel.span1_start &&
+    s.end_offset === rel.span1_end
+  );
+
+  const span2 = spans.find(s =>
+    s.start_offset === rel.span2_start &&
+    s.end_offset === rel.span2_end
+  );
+
+
+  if (!span1 || !span2) {
+    document.getElementById("annoDetails").innerHTML = `
+      <b>Type:</b> Relation<br>
+      ${rel.text}<br><br>
+      ⚠️ Unable to resolve spans for this relation
+    `;
+    document.getElementById("annotationInspector").style.display = "block";
+    return;
+  }
+
+  // ---------- Span UI ----------
+  function spanBlock(span, idx) {
+    let actionUI = "";
+
+    if (span.status === "pending") {
+      actionUI = `
+        <button onclick="
+          selectedSpanGroup = {
+            start_offset: ${span.start_offset},
+            end_offset: ${span.end_offset}
+          };
+          curateSpanLabel('${span.span_label}', 'approved', 'relation');
+        ">
+          Approve Span
+        </button>
+
+        <button onclick="
+          selectedSpanGroup = {
+            start_offset: ${span.start_offset},
+            end_offset: ${span.end_offset}
+          };
+          curateSpanLabel('${span.span_label}', 'rejected', 'relation');
+        ">
+          Reject Span
+        </button>
+      `;
+    } else {
+      actionUI =
+        span.status === "approved"
+          ? `<span style="color:green;">✅ Approved</span>`
+          : `<span style="color:red;">❌ Rejected</span>`;
+    }
+
+    return `
+      <div style="margin-bottom:8px;">
+        <b>Span-${idx}:</b> "${originalContent.slice(span.start_offset, span.end_offset)}"<br>
+        <b>Status:</b> ${span.status}<br>
+        ${actionUI}
+      </div>
+    `;
+  }
+
+  const span1UI = spanBlock(span1, 1);
+  const span2UI = spanBlock(span2, 2);
+
+  // ---------- Relation UI ----------
+  let relationUI = "";
+
+  if (rel.status === "approved" || rel.status === "rejected") {
+    relationUI = ""; // no buttons
+  } else if (span1.status === "approved" && span2.status === "approved") {
+    relationUI = `
+      <button onclick="curateRelation('approved')">Approve Relation</button>
+      <button onclick="curateRelation('rejected')">Reject Relation</button>
+    `;
+  }
+ else if (span1.status === "rejected" || span2.status === "rejected") {
+    relationUI = `
+      <span style="color:red;">
+        ❌ Relation cannot be curated because a span is rejected
+      </span>
+    `;
+  } else {
+    relationUI = `
+      <span style="color:#999;">
+        ⏳ Curate both spans to enable relation curation
+      </span>
+    `;
+  }
+
+  document.getElementById("annoDetails").innerHTML = `
+    <b>Type:</b> Relation<br>
+    ${rel.text}<br><br>
+
+    ${span1UI}
+    ${span2UI}
+
+    <hr>
+    ${relationStatusUI}
+    ${relationUI}
+  `;
+
+
+  document.getElementById("deleteAnnoBtn").style.display = "none";
+  document.getElementById("annotationInspector").style.display = "block";
+  return;
+}
+
+
+  // ==========================
+  // ANNOTATE MODE (UNCHANGED)
+  // ==========================
+  document.getElementById("annoDetails").innerHTML = `
+    <b>Type:</b> Relation<br>
+    ${rel.text}
+  `;
+
+  document.getElementById("deleteAnnoBtn").style.display = "block";
+  document.getElementById("annotationInspector").style.display = "block";
+});
+
+
+
+  // ---------------- Highlight NEW span selection ----------------
+  function highlightRange(range, label, spanId) {
+    const span = document.createElement("span");
+    span.className = "highlight";
+    span.setAttribute("data-label", label);
+    span.setAttribute("data-id", spanId);
+    span.style.backgroundColor = "yellow";
+    try {
+      range.surroundContents(span);
+    } catch (e) {
+      // Fallback: insert span manually
+      const textNode = range.extractContents();
+      span.appendChild(textNode);
+      range.insertNode(span);
+    }
+  }
+
+  // ---------------- Add span to dropdowns ----------------
+  function addSpanToDropdowns(span, isRestored = false) {
+    const displayText = `${spanMap[span.id]?.text || (span.start_offset + "-" + span.end_offset)} (${span.span_label})`;
+    const option1 = document.createElement("option");
+    option1.value = span.id;
+    option1.textContent = displayText;
+    const option2 = option1.cloneNode(true);
+    span1Select.appendChild(option1);
+    span2Select.appendChild(option2);
+
+    if (!isRestored && span1Select.options.length > 1) {
+      span1Select.options[span1Select.options.length - 1].selected = true;
+      span2Select.options[span2Select.options.length - 1].selected = true;
+    }
+  }
+
+  // ---------------- New span selection ----------------
+  textBox.addEventListener("mouseup", () => {
+    if (MODE === "curate") return;
+    if (!canEditAnnotations) return;
+    const selection = window.getSelection();
+
+    // --- NEW: determine label, including custom ---
+    let label = labelSelect.value;
+    if (label === "custom") {
+      const customInput = document.getElementById("custom-span-input");
+      const customValue = (customInput.value || "").trim();
+      if (!customValue) {
+        alert("Please enter a custom span label first!");
+        return;
+      }
+      label = customValue;
+    }
+
+    if (!selection.rangeCount || selection.isCollapsed || !label) return;
+
+    const range = selection.getRangeAt(0);
+
+    // Expand to full word
+    const nodeText = range.startContainer.textContent;
+    let start = range.startOffset;
+    let end = range.endOffset;
+
+    if (range.startContainer.nodeType === Node.TEXT_NODE) {
+      while (start > 0 && /\S/.test(nodeText[start - 1])) start--;
+      while (end < nodeText.length && /\S/.test(nodeText[end])) end++;
+    }
+
+    const expandedRange = document.createRange();
+    expandedRange.setStart(range.startContainer, start);
+    expandedRange.setEnd(range.startContainer, end);
+
+    const expandedText = expandedRange.toString().trim();
+    if (!expandedText) {
+      selection.removeAllRanges();
+      return;
+    }
+
+    const sentenceDiv = range.commonAncestorContainer.parentNode.closest(".sentence");
+    if (!sentenceDiv) {
+      selection.removeAllRanges();
+      return;
+    }
+
+    // --- CORRECT OFFSET LOGIC (from pos.html) ---
+    // Get sentences from the clean, global originalContent
+    const sentences = computeSentences(originalContent);
+    const sentenceIndex = Array.from(textBox.children).indexOf(sentenceDiv);
+    const sentStart = sentences[sentenceIndex].start;
+
+    const preRange = document.createRange();
+    preRange.setStart(sentenceDiv.firstChild, 0);
+    preRange.setEnd(expandedRange.startContainer, expandedRange.startOffset);
+
+    const startInSentence = preRange.toString().length;
+    const absStart = sentStart + startInSentence;
+    const absEnd = absStart + expandedText.length;
+    // --- END OF CORRECT OFFSET LOGIC ---
+
+    fetch(`${API}/span_annotations/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json","X-User-Id": String(user.user_id) },
+      body: JSON.stringify({
+        document_id: parseInt(documentId),
+        user_id: parseInt(user.user_id),
+        start_offset: absStart,
+        end_offset: absEnd,
+        span_label: label,
+        span_text: expandedText // send text too
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+      })
+      .then((data) => {
+        const newSpan = {
+          id: data.id,
+          text: expandedText,
+          start_offset: absStart,
+          end_offset: absEnd,
+          span_label: label,
+        };
+        // Update spanMap so dropdown text shows correctly
+        spanMap[data.id] = { text: expandedText, label: label };
+        
+        // Highlight in DOM (keeps current DOM modifications)
+        highlightRange(expandedRange, label, data.id);
+        
+        spanText.textContent = expandedText;
+        selectedSpans.push(newSpan);
+        addSpanToDropdowns(newSpan);
+      })
+      .catch(error => console.error('Error creating span annotation:', error));
+
+    selection.removeAllRanges();
+  });
+
+  // ---------------- Relation adding ----------------
+  function toggleCustomRelation(value) {
+    relationInput.style.display = value === "custom" ? "block" : "none";
+  }
+
+  // ---------------- Custom span toggle ----------------
+  function toggleCustomSpan(value) {
+    const input = document.getElementById("custom-span-input");
+    input.style.display = value === "custom" ? "block" : "none";
+  }
+
+  document.getElementById("add-relation").addEventListener("click", () => {
+    if (MODE === "curate") return;
+    if (!canEditAnnotations) return;
+    const span1 = span1Select.value;
+    const span2 = span2Select.value;
+    let relationType = relationSelect.value;
+
+    if (relationType === "custom") {
+      relationType = relationInput.value.trim();
+    }
+
+    if (span1 && span2 && relationType) {
+      fetch(`${API}/relation_annotations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-User-Id": String(user.user_id) },
+        body: JSON.stringify({
+          document_id: documentId,
+          user_id: user.user_id,
+          span1_id: parseInt(span1),
+          span2_id: parseInt(span2),
+          relation_label: relationType
+        }),
+        
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Network response was not ok');
+          return res.json();
+        })
+        .then(data => {
+          const span1Obj = spanMap[parseInt(span1)];
+          const span2Obj = spanMap[parseInt(span2)];
+          const relationString = `${span1Obj.text} (${span1Obj.label}) ---[${relationType}]---> ${span2Obj.text} (${span2Obj.label})`;
+          relationText.textContent = relationString;
+          const div = document.createElement("div");
+          div.textContent = relationString;
+          relations.push({
+            id: data.id,
+            text: relationString
+          });
+
+          const opt = document.createElement("option");
+          opt.value = data.id;
+          opt.textContent = relationString;
+          document.getElementById("relationsDropdown").appendChild(opt);
+
+          relationSelect.value = "";
+          relationInput.value = "";
+          relationInput.style.display = "none";
+        })
+        .catch(err => console.error("Error saving relation:", err));
+    } else {
+      alert("Please select two spans and a relation type.");
+    }
+  });
+
+  document.getElementById("downloadBtn").addEventListener("click", async () => {
+    if (!documentId) {
+        alert("No document selected!");
+        return;
+    }
+    const response = await fetch(`${API}/export/spandoc/${documentId}`,{ headers: AUTH_HEADERS });
+    if (!response.ok) {
+        alert("Error downloading annotations");
+        return;
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `document_${documentId}_annotations.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  });
+  // ---------------- Delete annotation ----------------
+  document.getElementById("deleteAnnoBtn").addEventListener("click", async () => {
+    if (MODE === "curate") return;
+    if (!canEditAnnotations) return;
+    if (!selectedAnnotation) return;
+
+    try {
+      if (selectedAnnotation.type === "span") {
+        await fetch(
+          `${API}/span_annotations/${selectedAnnotation.id}`,
+          {
+            method: "DELETE",
+            headers: { "X-User-Id": String(user.user_id) }
+          }
+        );
+      }
+
+      if (selectedAnnotation.type === "relation") {
+        await fetch(
+          `${API}/relation_annotations/${selectedAnnotation.id}`,
+          {
+            method: "DELETE",
+            headers: { "X-User-Id": String(user.user_id) }
+          }
+        );
+
+        // ✅ UPDATE DROPDOWN + STATE (ADD THIS HERE)
+        relations = relations.filter(r => r.id !== selectedAnnotation.id);
+
+        const dropdown = document.getElementById("relationsDropdown");
+        dropdown.value = "";
+
+        dropdown
+          .querySelector(`option[value="${selectedAnnotation.id}"]`)
+          ?.remove();
+
+        document.getElementById("annotationInspector").style.display = "none";
+
+        selectedAnnotation = null;
+        return; // IMPORTANT: stop here, do not reload whole document
+      }
+
+
+      selectedAnnotation = null;
+      document.getElementById("annotationInspector").style.display = "none";
+
+      // reload cleanly
+      // relationsList.innerHTML = "";
+      // span1Select.innerHTML = '<option value="">-- Select First Span --</option>';
+      // span2Select.innerHTML = '<option value="">-- Select Second Span --</option>';
+      // spanMap = {};
+      // loadDocument();
+
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete annotation.");
+    }
+  });
+
+  document.getElementById("markAsDoneBtn")?.addEventListener("click", async () => {
+    if (MODE === "curate" || !documentId) return;
+    const btn = document.getElementById("markAsDoneBtn");
+    const msgEl = document.getElementById("annotationCompleteMessage");
+    if (!btn || !msgEl) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch(
+        `${API}/documents/${documentId}/mark-annotation-complete`,
+        { method: "POST", headers: AUTH_HEADERS }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Failed to mark as complete");
+        btn.disabled = false;
+        return;
+      }
+      localStorage.setItem(ANNO_LOCK_KEY, "1");
+      setEditingLocked(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to mark as complete");
+      btn.disabled = false;
+    }
+  });
+  async function loadSpanRelLabels(projectId) {
+  try {
+    const res = await fetch(
+      `${API}/projects/${projectId}/labels`,
+      { headers: AUTH_HEADERS }
+    );
+
+    const labels = await res.json();
+    spanRelLabels = labels || [];
+
+    const spanSelect = document.getElementById("label-select");
+    const relationSelect = document.getElementById("relation-select");
+
+    spanSelect.innerHTML =
+      `<option value="">-- Select Label --</option>`;
+    relationSelect.innerHTML =
+      `<option value="">-- Select Relation --</option>`;
+
+    labels.forEach(label => {
+
+      // SPAN LABELS
+      if (label.layer_type === "span") {
+        const opt = document.createElement("option");
+        opt.value = label.label_name;
+        opt.textContent = label.label_name;
+        opt.title = label.description || "";
+        spanSelect.appendChild(opt);
+      }
+
+      // RELATION LABELS
+      if (label.layer_type === "relation") {
+        const opt = document.createElement("option");
+        opt.value = label.label_name;
+        opt.textContent = label.label_name;
+        opt.title = label.description || "";
+        relationSelect.appendChild(opt);
+      }
+
+    });
+
+  } catch (err) {
+    console.error("Failed to load span/relation labels", err);
+  }
+}
+
+  function openLabelInfoPopup() {
+    const listEl = document.getElementById("labelInfoList");
+    const popup = document.getElementById("labelInfoPopup");
+    if (!listEl || !popup) return;
+    listEl.innerHTML = "";
+    const spanLabels = spanRelLabels.filter(l => l.layer_type === "span");
+    const relationLabels = spanRelLabels.filter(l => l.layer_type === "relation");
+    function appendItems(arr) {
+      arr.forEach(l => {
+        const li = document.createElement("li");
+        li.style.marginBottom = "8px";
+        li.style.paddingBottom = "6px";
+        li.style.borderBottom = "1px solid #eee";
+        const name = document.createElement("div");
+        name.style.fontWeight = "600";
+        name.style.fontSize = "12px";
+        name.textContent = l.label_name || "";
+        const desc = document.createElement("div");
+        desc.style.fontSize = "11px";
+        desc.style.color = "var(--color-text-muted)";
+        desc.style.marginTop = "2px";
+        desc.textContent = l.description || "—";
+        li.appendChild(name);
+        li.appendChild(desc);
+        listEl.appendChild(li);
+      });
+    }
+    if (spanLabels.length) {
+      const h = document.createElement("li");
+      h.style.fontSize = "11px";
+      h.style.fontWeight = "600";
+      h.style.marginTop = "6px";
+      h.style.marginBottom = "4px";
+      h.textContent = "Span labels";
+      listEl.appendChild(h);
+      appendItems(spanLabels);
+    }
+    if (relationLabels.length) {
+      const h = document.createElement("li");
+      h.style.fontSize = "11px";
+      h.style.fontWeight = "600";
+      h.style.marginTop = "6px";
+      h.style.marginBottom = "4px";
+      h.textContent = "Relation labels";
+      listEl.appendChild(h);
+      appendItems(relationLabels);
+    }
+    if (spanLabels.length === 0 && relationLabels.length === 0) listEl.innerHTML = "<li style='color:var(--color-text-muted);'>No labels loaded.</li>";
+    popup.style.display = "block";
+  }
+  function closeLabelInfoPopup() {
+    const popup = document.getElementById("labelInfoPopup");
+    if (popup) popup.style.display = "none";
+  }
+  document.getElementById("labelInfoBtn")?.addEventListener("click", (e) => { e.stopPropagation(); openLabelInfoPopup(); });
+  document.getElementById("labelInfoPopupClose")?.addEventListener("click", closeLabelInfoPopup);
+  document.addEventListener("click", (e) => {
+    const popup = document.getElementById("labelInfoPopup");
+    const wrap = document.getElementById("spanLabelWrap");
+    if (popup && wrap && popup.style.display === "block" && !wrap.contains(e.target)) closeLabelInfoPopup();
+  });
+
+  // ---------------- Init ----------------
+  loadSpanRelLabels(projectId);
+  loadDocument();
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project — IndiAnn</title>
+  <link rel="stylesheet" href="css/common.css">
+  <script src="js/config.js"></script>
+  <script src="js/header.js"></script>
+  <style>
+    #documentList {
+      max-height: calc(75vh);
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    #documentList .doc-item {
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    #documentList .doc-item:hover {
+      background: var(--color-bg);
+    }
+
+    .doc-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .right-column, #projectDocsContainer, #projectDocuments {
+      overflow: hidden;
+    }
+
+    @media (min-width: 1000px) {
+      #documentList { max-height: calc(60vh); }
+    }
+
+    .doc-name {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Admin section */
+    .admin-section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    .admin-section h2 {
+      font-size: 1.2rem;
+      margin: 0 0 16px 0;
+      color: var(--color-text);
+    }
+
+    .admin-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .admin-actions .btn {
+      margin: 0;
+    }
+
+    .doc-item .doc-checkbox {
+      margin-right: 12px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .doc-item .doc-checkbox:checked + .doc-name { font-weight: 600; }
+
+    .manage-docs-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+    }
+
+    .manage-docs-bar.hidden { display: none; }
+
+    .multi-select {
+      min-height: 80px;
+      max-height: 120px;
+      padding: 6px;
+    }
+
+    /* Members list in modal */
+    .members-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .member-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: var(--color-bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+    }
+
+    .member-item:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Document info: annotator status toggle (Pending = left/yellow, Done = right/green) */
+    .doc-status-toggle {
+      display: flex;
+      width: 120px;
+      height: 28px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+      padding: 0;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: box-shadow 0.2s;
+    }
+    .doc-status-toggle:hover {
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+    }
+    .doc-status-toggle .doc-status-left,
+    .doc-status-toggle .doc-status-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s;
+    }
+    .doc-status-toggle.is-pending .doc-status-left {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .doc-status-toggle.is-pending .doc-status-right {
+      background: #e9ecef;
+      color: #6c757d;
+    }
+    .doc-status-toggle.is-done .doc-status-left {
+      background: #e9ecef;
+      color: #6c757d;
+    }
+    .doc-status-toggle.is-done .doc-status-right {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .member-info {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    .doc-item-actions .btn-info-doc {
+      padding: 6px 10px;
+      min-width: auto;
+    }
+
+    .member-role {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      font-weight: normal;
+    }
+
+    /* Label rows in modal */
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: var(--color-bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      gap: 12px;
+    }
+
+    .label-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .label-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .label-info strong {
+      font-size: 14px;
+      color: var(--color-text);
+    }
+
+    .label-desc {
+      display: block;
+      font-size: 12px;
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+
+    .modal-section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin: 16px 0 10px 0;
+    }
+
+    .modal-section-title:first-of-type {
+      margin-top: 0;
+    }
+
+    .list-empty {
+      padding: 16px;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 14px;
+      background: var(--color-bg);
+      border-radius: var(--radius-sm);
+    }
+
+    #documentList .empty {
+      padding: 16px;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header" aria-label="Application header">
+    <div class="app-header-left">
+      <div class="header-logo" aria-hidden="true"><img src="logo.png" alt="IITBBS" /></div>
+    </div>
+    <div class="app-header-center">
+      <a href="dashboard.html" class="app-header-title">IndiAnn</a>
+    </div>
+    <div class="app-header-right">
+      <div class="header-profile-wrap">
+        <span id="headerUsername" class="header-user-name">User</span>
+        <button type="button" class="header-profile-btn" id="headerProfileBtn" aria-haspopup="true" aria-expanded="false" aria-label="Profile menu">&#128100;</button>
+        <div class="header-dropdown" id="headerDropdown" role="menu">
+          <a href="dashboard.html" role="menuitem">Dashboard</a>
+          <div class="dropdown-divider"></div>
+          <button type="button" role="menuitem" id="headerLogoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id="projectName" style="padding:12px 20px; font-weight:600; font-size:1.05rem; background:var(--color-surface); border-bottom:1px solid var(--color-border);">Project: …</div>
+
+  <!-- Admin section (visible only to admin) -->
+  <div id="adminUploadBox" class="admin-section" style="display:none;">
+    <h2>Project admin</h2>
+
+    <div class="admin-actions">
+      <button type="button" class="btn btn-primary" onclick="openLabelModal()">🏷 Manage labels</button>
+    </div>
+
+    <h2 style="margin-top:24px;">Upload document</h2>
+    <div class="form-group">
+      <label for="fileType">File type</label>
+      <select id="fileType">
+        <option value="">-- Select type --</option>
+        <option value="txt">TXT</option>
+        <option value="pdf">PDF</option>
+        <option value="docx">DOCX</option>
+        <option value="conllu">CoNLL-U</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <input type="file" id="fileInput" />
+    </div>
+    <button type="button" class="btn btn-primary" id="uploadBtn">Upload</button>
+    <div id="uploadError" class="list-empty" style="display:none; margin-top:12px; color:var(--color-danger);"></div>
+  </div>
+
+  <div class="admin-section" style="padding-top:8px;">
+    <h2>Documents</h2>
+    <div id="manageDocsBar" class="manage-docs-bar hidden">
+      <span id="selectedCount">0 selected</span>
+      <button type="button" class="btn btn-primary" onclick="openDocMembersModal()">👥 Manage</button>
+    </div>
+    <div id="documentList"></div>
+  </div>
+
+  <!-- ================= Manage Document Members Modal ================= -->
+  <div id="docMembersModal" class="modal-overlay" style="display:none;" role="dialog" aria-labelledby="docMembersModalTitle" onclick="if(event.target===this) closeDocMembersModal();">
+    <div class="modal" style="max-width:480px;">
+      <h3 id="docMembersModalTitle">Add curators & annotators to selected documents</h3>
+
+      <div class="form-group">
+        <label for="curatorSelect">Curators (p1 = project language)</label>
+        <select id="curatorSelect" class="multi-select" multiple>
+          <option value="">-- Loading --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="annotatorSelect">Annotators (p1 or p2 = project language)</label>
+        <select id="annotatorSelect" class="multi-select" multiple>
+          <option value="">-- Loading --</option>
+        </select>
+      </div>
+      <p class="modal-section-title" style="font-size:12px; color:var(--color-text-muted);">Hold Ctrl/Cmd to select multiple users</p>
+      <button type="button" class="btn btn-primary" onclick="addDocMembers()">Add</button>
+
+      <div class="modal-actions" style="margin-top:20px;">
+        <button type="button" class="btn btn-outline" onclick="closeDocMembersModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Document Info: Curators & Annotators (admin) ================= -->
+  <div id="docInfoMembersModal" class="modal-overlay" style="display:none;" role="dialog" aria-labelledby="docInfoMembersModalTitle" onclick="if(event.target===this) closeDocInfoModal();">
+    <div class="modal" style="max-width:420px;">
+      <h3 id="docInfoMembersModalTitle">Document members</h3>
+      <p id="docInfoMembersDocName" style="font-size:13px; color:var(--color-text-muted); margin:0 0 12px 0;"></p>
+      <p class="modal-section-title" style="margin-top:12px;">Curators</p>
+      <ul id="docInfoCuratorsList" class="members-list"></ul>
+      <p class="modal-section-title" style="margin-top:16px;">Annotators</p>
+      <ul id="docInfoAnnotatorsList" class="members-list"></ul>
+      <div class="modal-actions" style="margin-top:20px;">
+        <button type="button" class="btn btn-outline" onclick="closeDocInfoModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Manage Labels Modal ================= -->
+  <div id="labelModal" class="modal-overlay" style="display:none;" role="dialog" aria-labelledby="labelModalTitle" onclick="if(event.target===this) closeLabelModal();">
+    <div class="modal" style="max-width:480px; max-height:90vh; overflow-y:auto;">
+      <h3 id="labelModalTitle">Manage labels</h3>
+
+      <p class="modal-section-title">Add label</p>
+      <div id="spanRelToggle" class="form-group" style="display:none;">
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <input type="radio" name="labelType" value="span" checked>
+          Span label
+        </label>
+        <label style="display:flex; align-items:center; gap:8px;">
+          <input type="radio" name="labelType" value="relation">
+          Relation label
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label for="newLabelName">Label name</label>
+        <input type="text" id="newLabelName" placeholder="e.g. noun, verb" />
+      </div>
+      <div class="form-group">
+        <label for="newLabelDesc">Description (optional)</label>
+        <textarea id="newLabelDesc" placeholder="Short description" rows="2"></textarea>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="createLabel()">Add label</button>
+
+      <p class="modal-section-title">Current labels</p>
+      <div id="labelList"></div>
+
+      <div class="modal-actions" style="margin-top:20px;">
+        <button type="button" class="btn btn-outline" onclick="closeLabelModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const projectId = urlParams.get("project_id");
+  const projectNameFromUrl = urlParams.get("project_name");
+
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  var headerUserEl = document.getElementById("headerUsername");
+  if (headerUserEl) headerUserEl.textContent = user?.username || "User";
+  const IS_ADMIN = !!user?.is_admin;
+  let IS_PROJECT_OWNER = false;
+  let currentProjectLayer = null;
+  const API = window.APP_CONFIG.API_BASE_URL;
+
+  document.getElementById("headerLogoutBtn")?.addEventListener("click", function () {
+    localStorage.removeItem("user");
+    window.location.href = "login.html";
+  });
+
+
+
+  const projectNameElem = document.getElementById("projectName");
+  const importBtn = document.getElementById("importBtn");
+  const browseBtn = document.getElementById("browseBtn");
+  const fileInput = document.getElementById("fileInput");
+  const fileList = document.getElementById("fileList");
+  const fileType = document.getElementById("fileType");
+  const errorBox = document.getElementById("errorBox");
+  
+
+  if (user?.is_admin) {
+    document.getElementById("adminUploadBox").style.display = "block";
+  }
+
+
+  // Load project metadata in a permission-aware way:
+  // - admin: can view all projects
+  // - non-admin: only projects they own OR have doc-level membership in
+  const projectsUrl = user?.is_admin
+    ? `${API}/projects/all`
+    : `${API}/projects/user/${encodeURIComponent(user.user_id)}`;
+
+  fetch(projectsUrl, {
+    headers: { "X-User-Id": String(user.user_id) }
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Failed to load projects");
+    return res.json();
+  })
+  .then(projects => {
+
+    if (!Array.isArray(projects)) {
+      console.error("Unexpected response:", projects);
+      return;
+    }
+
+    const project = projects.find(p => p.project_id == projectId);
+
+    if (!project) {
+      console.error("Project not found for id:", projectId);
+      return;
+    }
+
+    IS_PROJECT_OWNER = (project.user_id === user.user_id);
+    if (projectNameElem) projectNameElem.textContent = "Project: " + project.project_name;
+
+    currentProjectLayer = project.layer_type;
+
+    console.log("Loaded layer:", currentProjectLayer);
+
+  })
+  .catch(err => {
+    console.error("Error loading project:", err);
+  });
+
+
+  // --- Fetch documents ---
+
+/* Robust project-page file loader — replaces earlier script */
+function parseProjectIdFromUrlOrDom() {
+  const qs = new URLSearchParams(window.location.search);
+  const candidates = ["project_id", "projectId", "project", "id", "projectid"];
+  for (const k of candidates) {
+    const v = qs.get(k);
+    if (v) {
+      const n = Number(v);
+      if (Number.isInteger(n) && n > 0) return n;
+    }
+  }
+  const dataEl = document.querySelector("[data-project-id]");
+  if (dataEl) {
+    const v = dataEl.getAttribute("data-project-id");
+    const n = Number(v);
+    if (Number.isInteger(n) && n > 0) return n;
+  }
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  for (const p of pathParts.reverse()) {
+    const n = Number(p);
+    if (Number.isInteger(n) && n > 0) return n;
+  }
+  return null;
+}
+
+/* finds the best container on the page to render documents:
+   1) element with id "projectDocsContainer" (your right-column card)
+   2) element with id "documentList" (fallback)
+   3) create a safe wrapper at bottom of main */
+function getDocumentListContainer() {
+  // 1) try an explicit container your HTML may already have
+  const preferIds = ["projectDocsContainer", "projectDocuments", "documents-column", "documentList"];
+  for (const id of preferIds) {
+    const el = document.getElementById(id);
+    if (el) {
+      // if it's not the exact list, create or reuse a child list container
+      if (el.id === "documentList") return el;
+      // ensure child with id=documentList exists inside it
+      let child = el.querySelector("#documentList");
+      if (!child) {
+        child = document.createElement("div");
+        child.id = "documentList";
+        el.appendChild(child);
+      }
+      return child;
+    }
+  }
+
+  // 2) fallback: create a visible wrapper in the main content
+  const main = document.querySelector(".container") || document.body;
+  let wrapper = document.getElementById("documents-wrapper");
+  if (!wrapper) {
+    wrapper = document.createElement("div");
+    wrapper.id = "documents-wrapper";
+    wrapper.style.marginTop = "12px";
+    const heading = document.createElement("h3");
+    heading.textContent = "Project Documents";
+    heading.style.margin = "6px 0 8px 0";
+    wrapper.appendChild(heading);
+    const listEl = document.createElement("div");
+    listEl.id = "documentList";
+    wrapper.appendChild(listEl);
+    main.appendChild(wrapper);
+    return listEl;
+  }
+  return wrapper.querySelector("#documentList") || (function(){ const l=document.createElement("div"); l.id="documentList"; wrapper.appendChild(l); return l; })();
+}
+
+function clearProjectError() {
+  const el = document.getElementById("projectError");
+  if (el) el.remove();
+}
+
+function showProjectError(msg) {
+  let el = document.getElementById("projectError");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "projectError";
+    el.style.color = "crimson";
+    el.style.margin = "10px 0";
+    const container = document.querySelector(".container") || document.body;
+    container.prepend(el);
+  }
+  el.textContent = msg;
+}
+
+/* render items inside the chosen container and apply consistent item styles */
+
+
+function ensureDocumentListContainer() {
+  // Try preferred containers then create fallback if needed
+  const preferIds = ["projectDocsContainer", "projectDocuments", "documents-column", "documentList"];
+  for (const id of preferIds) {
+    const el = document.getElementById(id);
+    if (el) {
+      let child = el.querySelector("#documentList");
+      if (!child) {
+        // if element itself is the list, use it
+        if (el.id === "documentList") return el;
+        child = document.createElement("div");
+        child.id = "documentList";
+        el.appendChild(child);
+      }
+      return child;
+    }
+  }
+  // fallback: create a wrapper under .container or body
+  const main = document.querySelector(".container") || document.body;
+  let wrapper = document.getElementById("documents-wrapper");
+  if (!wrapper) {
+    wrapper = document.createElement("div");
+    wrapper.id = "documents-wrapper";
+    wrapper.style.marginTop = "12px";
+    const heading = document.createElement("h3");
+    heading.textContent = "Project Documents";
+    wrapper.appendChild(heading);
+    const listEl = document.createElement("div");
+    listEl.id = "documentList";
+    wrapper.appendChild(listEl);
+    main.appendChild(wrapper);
+    return listEl;
+  }
+  return wrapper.querySelector("#documentList") || (function(){ const l=document.createElement("div"); l.id="documentList"; wrapper.appendChild(l); return l; })();
+}
+
+function renderDocumentList(docs) {
+  const listEl = ensureDocumentListContainer();
+  if (!listEl) {
+    console.error("No container available to render documents.", docs);
+    return;
+  }
+
+  // Clear any previous error message
+  const errEl = document.getElementById("projectError");
+  if (errEl) errEl.remove();
+
+  // Safety: must be array
+  if (!Array.isArray(docs)) {
+    console.error("renderDocumentList expected array, got:", docs);
+    const el = document.getElementById("documentList") || ensureDocumentListContainer();
+    el.innerHTML = "<div class='empty'>Unexpected server response.</div>";
+    return;
+  }
+
+  // Clear existing content and render
+  listEl.innerHTML = "";
+
+  if (docs.length === 0) {
+    listEl.innerHTML = "<div class='empty'>No documents in this project.</div>";
+    return;
+  }
+
+
+  docs.forEach(doc => {
+    const item = document.createElement("div");
+    item.className = "doc-item";
+    item.dataset.documentId = doc.document_id;
+
+    const left = document.createElement("div");
+    left.style.display = "flex";
+    left.style.alignItems = "center";
+    left.style.flex = "1";
+    left.style.minWidth = "0";
+
+    const canManageDocs = IS_ADMIN || IS_PROJECT_OWNER;
+    if (canManageDocs) {
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.className = "doc-checkbox";
+      cb.dataset.documentId = doc.document_id;
+      cb.addEventListener("click", (e) => e.stopPropagation());
+      cb.addEventListener("change", updateManageBar);
+      left.appendChild(cb);
+    }
+
+    const info = document.createElement("div");
+    info.className = "doc-name";
+    info.style.flex = "1";
+    info.style.minWidth = "0";
+    const title = document.createElement("div");
+    title.style.fontWeight = "600";
+    title.textContent = doc.filename || "Document " + doc.document_id;
+    const meta = document.createElement("div");
+    meta.style.fontSize = "12px";
+    meta.style.color = "var(--color-text-muted)";
+    meta.textContent = "ID: " + doc.document_id;
+    info.appendChild(title);
+    info.appendChild(meta);
+    left.appendChild(info);
+    item.appendChild(left);
+
+    item.addEventListener("click", (e) => {
+      if (e.target.closest(".doc-item-actions")) return;
+      const layer = (doc.layer_type || "").toLowerCase();
+      const mode = new URLSearchParams(window.location.search).get("mode") || "annotate";
+      if (layer === "entity" || layer === "pos") {
+        
+        window.location.href = `pos.html?document_id=${doc.document_id}&project_id=${doc.project_id}&mode=${mode}`;
+
+      } else if (layer === "srl") {
+          window.location.href = `srl.html?document_id=${doc.document_id}&project_id=${doc.project_id}&mode=${mode}`;
+        }
+      else {
+        window.location.href = `spanrel.html?document_id=${doc.document_id}&project_id=${doc.project_id}&mode=${mode}`;
+      }
+    });
+
+    if (canManageDocs) {
+      const actions = document.createElement("div");
+      actions.className = "doc-item-actions";
+
+      const infoBtn = document.createElement("button");
+      infoBtn.type = "button";
+      infoBtn.className = "btn btn-outline btn-info-doc";
+      infoBtn.title = "View / manage curators & annotators";
+      infoBtn.innerHTML = "ℹ️";
+      infoBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openDocInfoModal(doc.document_id, doc.filename || "Document " + doc.document_id);
+      });
+      actions.appendChild(infoBtn);
+
+      const renameBtn = document.createElement("button");
+      renameBtn.type = "button";
+      renameBtn.className = "btn btn-outline";
+      renameBtn.textContent = "Rename";
+
+      renameBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        const newName = prompt("Enter new filename:", doc.filename);
+        if (!newName || newName === doc.filename) return;
+
+        const res = await fetch(
+          `${API}/documents/${doc.document_id}/rename`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "X-User-Id": String(user.user_id)
+            },
+            body: JSON.stringify({ filename: newName })
+          }
+        );
+
+        if (!res.ok) {
+          alert("Rename failed");
+          return;
+        }
+
+        fetchFiles(projectId); // refresh list
+      });
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "btn btn-danger";
+      deleteBtn.textContent = "Delete";
+
+      deleteBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        const ok = confirm(`Delete "${doc.filename}"? This cannot be undone.`);
+        if (!ok) return;
+
+        const res = await fetch(
+          `${API}/documents/${doc.document_id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "X-User-Id": String(user.user_id)
+            }
+          }
+        );
+
+        if (!res.ok) {
+          alert("Delete failed");
+          return;
+        }
+
+        fetchFiles(projectId); // refresh list
+      });
+
+      actions.appendChild(renameBtn);
+      actions.appendChild(deleteBtn);
+      item.appendChild(actions);
+    }
+
+    listEl.appendChild(item);
+  });
+
+   
+}
+
+
+
+
+async function fetchFiles(projectId) {
+  try {
+    if (projectId == null) {
+      console.warn("fetchFiles called with invalid projectId:", projectId, "URL:", window.location.href);
+      showProjectError("Missing or invalid project id. Cannot load documents.");
+      return;
+    }
+
+    // make sure the list container exists before fetching so items are placed correctly
+    getDocumentListContainer();
+
+    const user = (() => {
+      try { return JSON.parse(localStorage.getItem("user") || "null"); } catch(e) { return null; }
+    })();
+
+    const headers = {};
+    if (user && user.user_id) headers["X-User-Id"] = String(user.user_id);
+
+    const mode = (new URLSearchParams(window.location.search).get("mode") || "annotate").toLowerCase();
+    const resp = await fetch(`${API}/projects/${projectId}/documents?mode=${encodeURIComponent(mode)}`, { method: "GET", headers });
+
+    if (resp.status === 401) {
+      console.warn("Not authenticated. Redirecting to login.");
+      localStorage.removeItem("user");
+      window.location.href = "login.html";
+      return;
+    }
+
+    if (!resp.ok) {
+      const errBody = await resp.json().catch(()=>({ detail: "Unknown error" }));
+      console.error("Failed to load docs:", resp.status, errBody);
+      showProjectError(`Failed to load documents: ${errBody.detail || JSON.stringify(errBody)}`);
+      return;
+    }
+
+    const docs = await resp.json();
+    renderDocumentList(docs);
+
+  } catch (err) {
+    console.error("Error loading docs:", err);
+    showProjectError("Error loading documents. See console for details.");
+  }
+}
+
+/* initialize on DOM ready (prevents early runs) */
+document.addEventListener("DOMContentLoaded", () => {
+  const projectId = parseProjectIdFromUrlOrDom();
+  if (!projectId) {
+    console.error("Could not find a valid project_id in URL or DOM. URL:", window.location.href);
+    showProjectError("Missing or invalid project id in URL. Make sure the URL contains ?project_id=123");
+    return;
+  }
+
+  // create container early so a previous early call cannot cause a stale error to persist
+  getDocumentListContainer();
+
+  // now fetch the docs
+  fetchFiles(projectId);
+});
+
+
+const uploadErrorEl = document.getElementById("uploadError");
+
+document.getElementById("uploadBtn")?.addEventListener("click", async () => {
+  if (!user.is_admin) return;
+
+  const file = fileInput.files[0];
+  if (!file || !fileType.value) {
+    if (uploadErrorEl) {
+      uploadErrorEl.textContent = "Select file and type";
+      uploadErrorEl.style.display = "block";
+    }
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("project_id", projectId);
+  formData.append("uploaded_by", user.user_id);
+  formData.append("file_type", fileType.value);
+
+  const res = await fetch(`${API}/upload`, {
+    method: "POST",
+    headers: { "X-User-Id": String(user.user_id) },
+    body: formData
+  });
+
+  if (!res.ok) {
+    if (uploadErrorEl) {
+      uploadErrorEl.textContent = "Upload failed";
+      uploadErrorEl.style.display = "block";
+    }
+    return;
+  }
+  if (uploadErrorEl) uploadErrorEl.style.display = "none";
+
+  fetchFiles(projectId); // refresh doc list
+});
+
+
+// --------------------
+// Document Members UI (manage curators/annotators per document)
+// --------------------
+
+function getSelectedDocumentIds() {
+  return Array.from(document.querySelectorAll(".doc-checkbox:checked"))
+    .map(cb => parseInt(cb.dataset.documentId, 10))
+    .filter(id => !isNaN(id));
+}
+
+function updateManageBar() {
+  const bar = document.getElementById("manageDocsBar");
+  const countEl = document.getElementById("selectedCount");
+  const ids = getSelectedDocumentIds();
+  if (ids.length > 0) {
+    bar.classList.remove("hidden");
+    countEl.textContent = ids.length + " selected";
+  } else {
+    bar.classList.add("hidden");
+  }
+}
+
+function openDocMembersModal() {
+  const ids = getSelectedDocumentIds();
+  if (ids.length === 0) {
+    alert("Select at least one document.");
+    return;
+  }
+  document.getElementById("docMembersModal").style.display = "flex";
+  loadDocMemberDropdowns();
+}
+
+function closeDocMembersModal() {
+  document.getElementById("docMembersModal").style.display = "none";
+}
+
+// --------------------
+// Document Info modal: view/remove curators & annotators (per document)
+// --------------------
+let _docInfoCurrentId = null;
+
+function openDocInfoModal(docId, filename) {
+  _docInfoCurrentId = docId;
+  document.getElementById("docInfoMembersModalTitle").textContent = "Document members";
+  document.getElementById("docInfoMembersDocName").textContent = filename || "Document " + docId;
+  document.getElementById("docInfoMembersModal").style.display = "flex";
+  loadDocInfoMembers(docId);
+}
+
+function closeDocInfoModal() {
+  document.getElementById("docInfoMembersModal").style.display = "none";
+  _docInfoCurrentId = null;
+}
+
+async function loadDocInfoMembers(docId) {
+  const curatorsEl = document.getElementById("docInfoCuratorsList");
+  const annotatorsEl = document.getElementById("docInfoAnnotatorsList");
+  curatorsEl.innerHTML = "<li class=\"list-empty\">Loading…</li>";
+  annotatorsEl.innerHTML = "<li class=\"list-empty\">Loading…</li>";
+
+  try {
+    const res = await fetch(`${API}/documents/${docId}/members`, { headers: { "X-User-Id": String(user.user_id) } });
+    if (!res.ok) {
+      curatorsEl.innerHTML = "<li class=\"list-empty\">Failed to load.</li>";
+      annotatorsEl.innerHTML = "";
+      return;
+    }
+    const data = await res.json();
+    const curators = data.curators || [];
+    const annotators = data.annotators || [];
+
+    curatorsEl.innerHTML = "";
+    if (curators.length === 0) {
+      curatorsEl.innerHTML = "<li class=\"list-empty\">No curators assigned.</li>";
+    } else {
+      curators.forEach(u => appendMemberRow(curatorsEl, docId, "curator", u, data.curators, data.annotators));
+    }
+
+    annotatorsEl.innerHTML = "";
+    if (annotators.length === 0) {
+      annotatorsEl.innerHTML = "<li class=\"list-empty\">No annotators assigned.</li>";
+    } else {
+      annotators.forEach(u => appendMemberRow(annotatorsEl, docId, "annotator", u, data.curators, data.annotators));
+    }
+  } catch (err) {
+    console.error(err);
+    curatorsEl.innerHTML = "<li class=\"list-empty\">Error loading members.</li>";
+    annotatorsEl.innerHTML = "";
+  }
+}
+
+function appendMemberRow(container, docId, role, userObj, curatorsList, annotatorsList) {
+  const li = document.createElement("li");
+  li.className = "member-item";
+  li.innerHTML = "<span class=\"member-info\">" + (userObj.username || "User " + userObj.user_id).replace(/</g, "&lt;") + "</span>";
+  const rightWrap = document.createElement("div");
+  rightWrap.style.display = "flex";
+  rightWrap.style.alignItems = "center";
+  rightWrap.style.gap = "10px";
+  if (role === "annotator" && userObj.hasOwnProperty("completed")) {
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "doc-status-toggle " + (userObj.completed ? "is-done" : "is-pending");
+    toggleBtn.setAttribute("aria-label", userObj.completed ? "Done (click to set Pending)" : "Pending (click to set Done)");
+    toggleBtn.innerHTML = "<span class=\"doc-status-left\">Pending</span><span class=\"doc-status-right\">Done</span>";
+    toggleBtn.addEventListener("click", async () => {
+      const nextCompleted = !userObj.completed;
+      toggleBtn.disabled = true;
+      try {
+        const res = await fetch(`${API}/documents/${docId}/annotator-status`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "X-User-Id": String(user.user_id) },
+          body: JSON.stringify({ user_id: userObj.user_id, completed: nextCompleted })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.detail || "Failed to update status.");
+          return;
+        }
+        userObj.completed = nextCompleted;
+        toggleBtn.classList.toggle("is-pending", !nextCompleted);
+        toggleBtn.classList.toggle("is-done", nextCompleted);
+        toggleBtn.setAttribute("aria-label", nextCompleted ? "Done (click to set Pending)" : "Pending (click to set Done)");
+      } catch (e) {
+        console.error(e);
+        alert("Error updating status.");
+      } finally {
+        toggleBtn.disabled = false;
+      }
+    });
+    rightWrap.appendChild(toggleBtn);
+  }
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "btn btn-outline";
+  removeBtn.textContent = "Remove";
+  removeBtn.addEventListener("click", async () => {
+    if (!confirm("Remove " + (userObj.username || userObj.user_id) + " as " + role + "?")) return;
+    const nextCurators = role === "curator"
+      ? (curatorsList || []).map(u => u.user_id).filter(id => id !== userObj.user_id)
+      : (curatorsList || []).map(u => u.user_id);
+    const nextAnnotators = role === "annotator"
+      ? (annotatorsList || []).map(u => u.user_id).filter(id => id !== userObj.user_id)
+      : (annotatorsList || []).map(u => u.user_id);
+    try {
+      const putRes = await fetch(`${API}/documents/${docId}/members`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-User-Id": String(user.user_id) },
+        body: JSON.stringify({ curators: nextCurators, annotators: nextAnnotators })
+      });
+      if (!putRes.ok) {
+        alert("Failed to remove member.");
+        return;
+      }
+      loadDocInfoMembers(docId);
+    } catch (e) {
+      console.error(e);
+      alert("Error removing member.");
+    }
+  });
+  rightWrap.appendChild(removeBtn);
+  li.appendChild(rightWrap);
+  container.appendChild(li);
+}
+
+async function loadDocMemberDropdowns() {
+  const curatorSel = document.getElementById("curatorSelect");
+  const annotatorSel = document.getElementById("annotatorSelect");
+  curatorSel.innerHTML = "<option>Loading…</option>";
+  annotatorSel.innerHTML = "<option>Loading…</option>";
+
+  const headers = { "X-User-Id": String(user.user_id) };
+
+  try {
+    const [curRes, annRes] = await Promise.all([
+      fetch(`${API}/users/by-language?project_id=${projectId}&role=curator`, { headers }),
+      fetch(`${API}/users/by-language?project_id=${projectId}&role=annotator`, { headers })
+    ]);
+
+    const curators = curRes.ok ? await curRes.json() : [];
+    const annotators = annRes.ok ? await annRes.json() : [];
+
+    curatorSel.innerHTML = "";
+    if (!curators || curators.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No users with p1 = project language";
+      opt.disabled = true;
+      curatorSel.appendChild(opt);
+    } else {
+      (curators || []).forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.user_id;
+        opt.textContent = u.username;
+        curatorSel.appendChild(opt);
+      });
+    }
+
+    annotatorSel.innerHTML = "";
+    if (!annotators || annotators.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No users with p1/p2 = project language";
+      opt.disabled = true;
+      annotatorSel.appendChild(opt);
+    } else {
+    (annotators || []).forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = u.user_id;
+      opt.textContent = u.username;
+      annotatorSel.appendChild(opt);
+    });
+    }
+  } catch (err) {
+    console.error(err);
+    curatorSel.innerHTML = "<option>Error loading</option>";
+    annotatorSel.innerHTML = "<option>Error loading</option>";
+  }
+}
+
+async function addDocMembers() {
+  const ids = getSelectedDocumentIds();
+  if (ids.length === 0) {
+    alert("Select at least one document.");
+    return;
+  }
+
+  const curatorSel = document.getElementById("curatorSelect");
+  const annotatorSel = document.getElementById("annotatorSelect");
+  const curatorIds = Array.from(curatorSel.selectedOptions).map(o => parseInt(o.value, 10)).filter(id => !isNaN(id));
+  const annotatorIds = Array.from(annotatorSel.selectedOptions).map(o => parseInt(o.value, 10)).filter(id => !isNaN(id));
+
+  if (curatorIds.length === 0 && annotatorIds.length === 0) {
+    alert("Select at least one curator or annotator.");
+    return;
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+    "X-User-Id": String(user.user_id)
+  };
+
+  for (const docId of ids) {
+    try {
+      const res = await fetch(`${API}/documents/${docId}/members`, { headers: { "X-User-Id": String(user.user_id) } });
+      let curators = [];
+      let annotators = [];
+      if (res.ok) {
+        const data = await res.json();
+        curators = (data.curators || []).map(u => u.user_id);
+        annotators = (data.annotators || []).map(u => u.user_id);
+      }
+      curatorIds.forEach(id => { if (!curators.includes(id)) curators.push(id); });
+      annotatorIds.forEach(id => { if (!annotators.includes(id)) annotators.push(id); });
+
+      const putRes = await fetch(`${API}/documents/${docId}/members`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ curators, annotators })
+      });
+
+      if (!putRes.ok) {
+        const err = await putRes.json().catch(() => ({}));
+        alert("Failed for document " + docId + ": " + (err.detail || "Unknown error"));
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating document " + docId);
+      return;
+    }
+  }
+
+  alert("Added " + (curatorIds.length + annotatorIds.length) + " users to " + ids.length + " document(s).");
+  document.querySelectorAll(".doc-checkbox:checked").forEach(cb => cb.checked = false);
+  updateManageBar();
+  closeDocMembersModal();
+}
+
+function setupLayerOptions(layerType) {
+  const select = document.getElementById("labelLayerSelect");
+  select.innerHTML = `<option value="">-- Select Layer --</option>`;
+
+  if (layerType === "entity") {
+    select.innerHTML += `<option value="entity">POS Label</option>`;
+  }
+
+  if (layerType === "span_relation") {
+    select.innerHTML += `
+      <option value="span">Span Label</option>
+      <option value="relation">Relation Label</option>
+    `;
+  }
+
+  if (layerType === "srl") {
+    select.innerHTML += `<option value="role">Role Label</option>`;
+  }
+}
+
+
+function openLabelModal() {
+
+  if (!currentProjectLayer) {
+    alert("Project layer not loaded yet.");
+    return;
+  }
+
+  document.getElementById("labelModal").style.display = "flex";
+
+  const toggle = document.getElementById("spanRelToggle");
+
+  if (currentProjectLayer === "span_relation") {
+    toggle.style.display = "block";
+  } else {
+    toggle.style.display = "none";
+  }
+
+  loadLabels(projectId);
+}
+
+
+
+
+
+function closeLabelModal() {
+  document.getElementById("labelModal").style.display = "none";
+}
+
+function renderLabelRow(container, label) {
+  const row = document.createElement("div");
+  row.className = "label-row";
+  row.innerHTML = "<div class=\"label-info\"><strong>" + (label.label_name || "").replace(/</g, "&lt;") + "</strong><span class=\"label-desc\">" + (label.description || "").replace(/</g, "&lt;") + "</span></div>";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "btn btn-outline";
+  btn.textContent = "Remove";
+  btn.onclick = function () { deleteLabel(label.id); };
+  row.appendChild(btn);
+  container.appendChild(row);
+}
+
+
+
+async function loadLabels(projectId) {
+  const box = document.getElementById("labelList");
+  box.innerHTML = "<div class=\"list-empty\">Loading…</div>";
+
+  const res = await fetch(
+    `${API}/projects/${projectId}/labels`,
+    { headers: { "X-User-Id": String(user.user_id) } }
+  );
+
+  if (!res.ok) {
+    box.innerHTML = "<div class=\"list-empty\">Failed to load labels.</div>";
+    return;
+  }
+
+  const labels = await res.json();
+  box.innerHTML = "";
+
+  if (!Array.isArray(labels) || labels.length === 0) {
+    box.innerHTML = "<div class=\"list-empty\">No labels yet. Add one above.</div>";
+    return;
+  }
+
+  // ENTITY PROJECT
+  if (currentProjectLayer === "entity") {
+
+    labels.forEach(label => {
+      renderLabelRow(box, label);
+    });
+  }
+
+  // SRL PROJECT
+  if (currentProjectLayer === "srl") {
+
+    labels
+      .filter(l => l.layer_type === "role")
+      .forEach(label => {
+        renderLabelRow(box, label);
+      });
+  }
+
+  // SPAN-RELATION PROJECT
+  if (currentProjectLayer === "span_relation") {
+    var spanTitle = document.createElement("p");
+    spanTitle.className = "modal-section-title";
+    spanTitle.textContent = "Span labels";
+    box.appendChild(spanTitle);
+    labels.filter(l => l.layer_type === "span").forEach(label => { renderLabelRow(box, label); });
+
+    var relTitle = document.createElement("p");
+    relTitle.className = "modal-section-title";
+    relTitle.textContent = "Relation labels";
+    box.appendChild(relTitle);
+    labels.filter(l => l.layer_type === "relation").forEach(label => { renderLabelRow(box, label); });
+  }
+}
+
+async function createLabel() {
+
+  const projectId = urlParams.get("project_id");
+
+  const name = document.getElementById("newLabelName").value.trim();
+  const desc = document.getElementById("newLabelDesc").value.trim();
+
+  if (!name) {
+    alert("Label name required");
+    return;
+  }
+
+  if (!currentProjectLayer) {
+    alert("Project layer not loaded yet.");
+    return;
+  }
+
+  let layerTypeToSend;
+
+  if (currentProjectLayer === "entity") {
+    layerTypeToSend = "entity";
+  }
+  else if (currentProjectLayer === "span_relation") {
+    const selected = document.querySelector('input[name="labelType"]:checked');
+    layerTypeToSend = selected ? selected.value : "span";
+  }
+  else if (currentProjectLayer === "srl") {
+    layerTypeToSend = "role";
+  }
+
+  const res = await fetch(
+    `${API}/projects/${projectId}/labels`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Id": String(user.user_id)
+      },
+      body: JSON.stringify({
+        layer_type: layerTypeToSend,
+        label_name: name.toLowerCase(),
+        description: desc
+      })
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    alert(err.detail || "Failed to create label");
+    return;
+  }
+
+  document.getElementById("newLabelName").value = "";
+  document.getElementById("newLabelDesc").value = "";
+
+  loadLabels(projectId);
+}
+
+
+async function deleteLabel(labelId) {
+
+  if (!confirm("Delete this label?")) return;
+
+  await fetch(
+    `${API}/projects/labels/${labelId}`,
+    {
+      method: "DELETE",
+      headers: { "X-User-Id": String(user.user_id) }
+    }
+  );
+
+  const projectId = urlParams.get("project_id");
+  loadLabels(projectId);
+}
+
+
+
+
+
+  if (projectId) fetchFiles(projectId);
+</script>
+
+</body>
+</html>

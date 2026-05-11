@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Account — IndiAnn</title>
+  <link rel="stylesheet" href="css/common.css">
+  <script src="js/config.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .app-header {
+      width: 100%;
+      align-self: stretch;
+    }
+
+    .signup-box {
+      margin-top: 80px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: 40px 36px;
+      border-radius: var(--radius);
+      width: 320px;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .signup-box .avatar {
+      width: 64px;
+      height: 64px;
+      border: 2px solid var(--color-primary);
+      border-radius: 50%;
+      margin: 0 auto 24px;
+      background: var(--color-primary-light);
+    }
+
+    .signup-box input {
+      width: 100%;
+      padding: 10px 12px;
+      margin: 8px 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+    }
+
+    .signup-box button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .signup-box .back-login {
+      margin-top: 16px;
+      display: block;
+      font-size: 14px;
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .signup-box .back-login:hover {
+      text-decoration: underline;
+    }
+
+    .signup-box .btn-back {
+      margin-top: 8px;
+      background: transparent;
+      color: var(--color-primary);
+      border: 1px solid var(--color-border);
+    }
+
+    .signup-box .btn-back:hover {
+      background: var(--color-primary-light);
+    }
+
+    .signup-note {
+      font-size: 12px;
+      color: var(--color-muted, #666);
+      margin: 0 0 16px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" aria-label="Application header">
+    <div class="app-header-left">
+      <div class="header-logo" aria-hidden="true"><img src="logo.png" alt="IITBBS" /></div>
+    </div>
+    <div class="app-header-center">
+      <a href="login.html" class="app-header-title">IndiAnn</a>
+    </div>
+    <div class="app-header-right">
+      <div class="header-profile-wrap">
+        <a href="login.html" class="app-header-back header-user-name">← Back to Login</a>
+        <span class="header-profile-btn header-profile-icon-only" aria-hidden="true">&#128100;</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Signup Box -->
+  <div class="signup-box">
+    <div class="avatar"></div>
+
+    <!-- Step 1: Basic info -->
+    <div id="step1" class="signup-step">
+      <input type="text" placeholder="USER NAME" id="username">
+      <input type="email" placeholder="EMAIL" id="email">
+      <input type="password" placeholder="PASSWORD" id="password">
+      <input type="password" placeholder="CONFIRM PASSWORD" id="confirmPassword">
+      <button onclick="handleNext()">NEXT</button>
+    </div>
+
+    <!-- Step 2: Languages -->
+    <div id="step2" class="signup-step" style="display: none;">
+      <p class="signup-note">Please add the languages in your proficiency order with full spelling. </p>
+      <input type="text" placeholder="EXPERT PROFICIENCY" id="language1" autocomplete="off">
+      <input type="text" placeholder="MEDIUM PROFECIENCY(OPTIONAL)" id="language2" autocomplete="off">
+      <input type="text" placeholder="BEGINNER PROFECIENCY(optional)" id="language3" autocomplete="off">
+      <button onclick="handleSignup()">CREATE ACCOUNT</button>
+      <button type="button" class="btn-back" onclick="handleBack()">← BACK</button>
+    </div>
+
+    <a href="login.html" class="back-login">BACK TO LOGIN</a>
+  </div>
+
+  <script>
+    function handleNext() {
+      const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (!username || !email || !password || !confirmPassword) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        alert("Passwords do not match!");
+        return;
+      }
+
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+    }
+
+    function handleBack() {
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step1').style.display = 'block';
+    }
+
+    function handleSignup() {
+      const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const language1 = document.getElementById('language1').value.trim();
+      const language2 = document.getElementById('language2').value.trim();
+      const language3 = document.getElementById('language3').value.trim();
+
+      if (!language1 || !language2) {
+        alert("Please fill at least Language 1 and Language 2!");
+        return;
+      }
+
+      fetch(window.APP_CONFIG.API_BASE_URL + "/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          language1,
+          language2,
+          language3
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          localStorage.setItem("user", JSON.stringify({
+            user_id: data.user_id,
+            username: username
+          }));
+          window.location.href = "dashboard.html";
+        } else {
+          alert("Signup failed: " + data.detail);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Server error, please try again later.");
+      });
+    }
+
+    // If already logged in, redirect to dashboard
+    (function () {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || 'null');
+        if (u && u.user_id) window.location.href = 'dashboard.html';
+      } catch (e) {}
+    })();
+  </script>
+
+</body>
+</html>
