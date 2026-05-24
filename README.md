@@ -466,3 +466,18 @@ FastAPI Backend (127.0.0.1:8000)
    ↓
 PostgreSQL
 ```
+
+---
+
+## Citation
+
+```bibtex
+@inproceedings{indiann2026,
+  title     = {IndiAnn: A Web-based Annotation Platform for Indic Languages},
+  author    = {Bandaru, Lavadeep and Raghav, Ritwik and Jana, Abhik},
+  booktitle = {Proceedings of the Linguistic Annotation Workshop (LAW XX)},
+  year      = {2026}
+}
+```
+
+---
