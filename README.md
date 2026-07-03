@@ -8,7 +8,7 @@ IndiAnn is a web-based annotation platform for low-resource Indic languages supp
 - Semantic Role Labeling (SRL)
 - Multi-user annotation and curation workflows
 
-View application demo: [INDIANN](https://drive.google.com/file/d/1CD0LyeBIGgxbgfe4vYIV3kVwFl-1CyO4/view?usp=sharing)
+View application demo: [INDIANN_DEMO](https://drive.google.com/file/d/1CD0LyeBIGgxbgfe4vYIV3kVwFl-1CyO4/view?usp=sharing)
 
 Backend:
 - FastAPI (Python)
